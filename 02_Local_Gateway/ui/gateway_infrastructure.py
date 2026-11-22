@@ -164,6 +164,19 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             padding: 0 8px;
         }
 
+        .col-5-cards {
+            flex: 0 0 20%;
+            max-width: 20%;
+            padding: 0 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .col-5-cards {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+
         @media (max-width: 900px) {
             .col-3, .col-4, .col-6 {
                 flex: 0 0 100%;
@@ -394,7 +407,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <!-- Metric Cards Row -->
         <div class="row">
             <!-- Smoke Sensor -->
-            <div class="col-3">
+            <div class="col-5-cards">
                 <div class="chart-wrapper">
                     <div class="chart-title">Smoke Concentration</div>
                     <div class="chart-stage">
@@ -410,8 +423,23 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                 </div>
             </div>
 
+            <!-- Ambient Temperature -->
+            <div class="col-5-cards">
+                <div class="chart-wrapper">
+                    <div class="chart-title">Ambient Temperature</div>
+                    <div class="chart-stage">
+                        <div class="metric-value">
+                            <span id="val-temp">--.-</span>
+                            <span class="metric-unit">&deg;C</span>
+                        </div>
+                        <div id="desc-temp" style="font-size:12px; color:#7f8c8d; margin-top:14px;">DHT11 Room Sensor</div>
+                    </div>
+                    <div class="chart-notes">Normal &lt; 50&deg;C | High Heat &ge; 50&deg;C</div>
+                </div>
+            </div>
+
             <!-- Flame Detector -->
-            <div class="col-3">
+            <div class="col-5-cards">
                 <div class="chart-wrapper">
                     <div class="chart-title">Flame Optical Sensor</div>
                     <div class="chart-stage">
@@ -423,7 +451,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             </div>
 
             <!-- Fire Barrier Door -->
-            <div class="col-3">
+            <div class="col-5-cards">
                 <div class="chart-wrapper">
                     <div class="chart-title">Emergency Fire Door</div>
                     <div class="chart-stage">
@@ -438,7 +466,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             </div>
 
             <!-- AI Isolation Forest -->
-            <div class="col-3">
+            <div class="col-5-cards">
                 <div class="chart-wrapper">
                     <div class="chart-title">AI Isolation Forest</div>
                     <div class="chart-stage">
@@ -586,13 +614,36 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                     else fill.style.backgroundColor = '#27ae60';
                 }
 
+                // Ambient Temperature Sensor
+                if (data.temperature !== undefined) {
+                    const tempVal = Number(data.temperature).toFixed(1);
+                    const elTemp = document.getElementById('val-temp');
+                    const descTemp = document.getElementById('desc-temp');
+                    if (elTemp && descTemp) {
+                        elTemp.innerText = tempVal;
+                        if (tempVal >= 50.0) {
+                            elTemp.style.color = '#c0392b';
+                            descTemp.innerText = 'OVERHEAT: FIRE TEMPERATURE DETECTED';
+                            descTemp.style.color = '#c0392b';
+                        } else if (tempVal >= 38.0) {
+                            elTemp.style.color = '#d35400';
+                            descTemp.innerText = 'ELEVATED TEMPERATURE WARNING';
+                            descTemp.style.color = '#d35400';
+                        } else {
+                            elTemp.style.color = '#1a2530';
+                            descTemp.innerText = 'Normal Ambient Range';
+                            descTemp.style.color = '#7f8c8d';
+                        }
+                    }
+                }
+
                 // Flame Sensor
                 const isFlame = (data.flame === 1 || data.flame === true || data.flame === '1');
                 const valFlame = document.getElementById('val-flame');
                 const descFlame = document.getElementById('desc-flame');
                 const banner = document.getElementById('alert-banner');
 
-                if (isFlame || (data.smoke && data.smoke > 70)) {
+                if (isFlame || (data.smoke && data.smoke >= 1800) || (data.temperature && data.temperature >= 50.0)) {
                     valFlame.innerText = 'FLAME DETECTED';
                     valFlame.className = 'metric-state text-danger';
                     descFlame.innerText = 'ACTIVE FIRE OR HIGH SMOKE DETECTED';

@@ -172,6 +172,14 @@ def fetch_system_widget_templates(token: str) -> dict:
                         break
                 break
 
+    # 5. Value Card (cards.value_card)
+    res = requests.get(f"{TB_HOST}/api/widgetTypes?isSystem=true&bundleAlias=cards", headers=headers, timeout=10)
+    if res.status_code == 200:
+        for w in res.json():
+            if w.get("fqn") == "cards.value_card":
+                templates["value_card"] = json.loads(w["descriptor"]["defaultConfig"])
+                break
+
     return templates
 
 
@@ -188,6 +196,7 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
     id_led = "a1111111-0000-0000-0000-000000000006"
     id_anom_status = "a1111111-0000-0000-0000-000000000007"
     id_anom_score = "a1111111-0000-0000-0000-000000000008"
+    id_temp_card = "a1111111-0000-0000-0000-000000000009"
 
     # --- 1. Smoke Radial Gauge ---
     smoke_cfg = copy.deepcopy(templates.get("radial_gauge", {}))
@@ -410,13 +419,42 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
     led_cfg["settings"]["parseValueFunction"] = "return data && (data.led === true || data.led === 1);"
     led_cfg["settings"]["convertValueFunction"] = "return value ? 1 : 0;"
 
+    # --- 9. Ambient Temperature Value Card ---
+    temp_cfg = copy.deepcopy(templates.get("value_card", {}))
+    temp_cfg["title"] = "Ambient Temperature"
+    temp_cfg["showTitle"] = True
+    temp_cfg["units"] = "°C"
+    temp_cfg["decimals"] = 1
+    temp_cfg.setdefault("settings", {})
+    temp_cfg["settings"]["showIcon"] = True
+    temp_cfg["settings"]["icon"] = "thermostat"
+    temp_cfg["settings"]["layout"] = "square"
+    temp_cfg["settings"]["showLabel"] = True
+    temp_cfg["settings"]["labelPosition"] = "top"
+    temp_cfg["datasources"] = [
+        {
+            "type": "entity",
+            "entityAliasId": alias_id,
+            "dataKeys": [
+                {
+                    "name": "temperature",
+                    "type": "timeseries",
+                    "label": "Temperature",
+                    "color": "#2196f3",
+                    "settings": {},
+                    "_hash": 0.51
+                }
+            ]
+        }
+    ]
+
     # Widgets definition
     widgets = {
         id_smoke_gauge: {
             "id": id_smoke_gauge,
             "type": "latest",
             "typeFullFqn": "system.analogue_gauges.radial_gauge_canvas_gauges",
-            "sizeX": 6,
+            "sizeX": 5,
             "sizeY": 6,
             "row": 0,
             "col": 0,
@@ -426,30 +464,40 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
             "id": id_flame_status,
             "type": "latest",
             "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
-            "sizeX": 6,
+            "sizeX": 5,
             "sizeY": 6,
             "row": 0,
-            "col": 6,
+            "col": 5,
             "config": flame_cfg
+        },
+        id_temp_card: {
+            "id": id_temp_card,
+            "type": "latest",
+            "typeFullFqn": "system.cards.value_card",
+            "sizeX": 4,
+            "sizeY": 6,
+            "row": 0,
+            "col": 10,
+            "config": temp_cfg
         },
         id_anom_status: {
             "id": id_anom_status,
             "type": "latest",
             "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
-            "sizeX": 6,
+            "sizeX": 5,
             "sizeY": 6,
             "row": 0,
-            "col": 12,
+            "col": 14,
             "config": anom_status_cfg
         },
         id_anom_score: {
             "id": id_anom_score,
             "type": "latest",
             "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
-            "sizeX": 6,
+            "sizeX": 5,
             "sizeY": 6,
             "row": 0,
-            "col": 18,
+            "col": 19,
             "config": anom_score_cfg
         },
         id_chart: {

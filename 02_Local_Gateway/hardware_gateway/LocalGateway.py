@@ -73,9 +73,9 @@ def parse_uart_payload(line: str) -> Optional[Dict[str, Any]]:
             pass
 
     # 2. Text log from 01_Firmware_EndNode (main.cpp line 159)
-    # e.g.: "MQ-2 ADC: 1450 | Lua: KHONG | Nhiet do: 28.5 C | Do am: 65% | Trang thai: AN TOAN"
+    # e.g.: "MQ-2 ADC: 1450 | Lua: KHONG | Nhiet do: 28.5 C | Do am: 65% | AI Risk: 12.5% | Trang thai: AN TOAN"
     m = re.search(
-        r'MQ-2 ADC:\s*(\d+).*?Lua:\s*(PHAT HIEN|KHONG|0|1).*?Nhiet do:\s*([\d\.\-]+).*?Do am:\s*([\d\.\-]+)',
+        r'MQ-2 ADC:\s*(\d+).*?Lua:\s*(PHAT HIEN|KHONG|0|1).*?Nhiet do:\s*([\d\.\-]+|nan|NAN).*?Do am:\s*([\d\.\-]+|nan|NAN)(?:.*?AI Risk:\s*([\d\.\-]+)%)?',
         cleaned,
         re.IGNORECASE
     )
@@ -86,18 +86,25 @@ def parse_uart_payload(line: str) -> Optional[Dict[str, Any]]:
         try:
             temp_val = float(m.group(3))
         except ValueError:
-            temp_val = 24.0
+            temp_val = 27.0
         try:
             hum_val = float(m.group(4))
         except ValueError:
-            hum_val = 50.0
+            hum_val = 60.0
 
-        return {
+        payload = {
             "smoke": mq2_val,
             "flame": flame_val,
             "temperature": temp_val,
             "humidity": hum_val
         }
+        if m.group(5):
+            try:
+                payload["tinyml_risk"] = float(m.group(5))
+            except ValueError:
+                pass
+
+        return payload
 
     return None
 

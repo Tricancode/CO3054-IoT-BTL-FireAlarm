@@ -4,6 +4,7 @@
 #include <DHT.h>
 #include <ESP32Servo.h>
 #include <SPI.h>
+#include "tinyml_fire_model.h"
 
 namespace {
 // OhStem Yolo UNO ESP32-S3 GPIO mapping (see the wiring table).
@@ -62,28 +63,27 @@ void applyActuatorOutputs(bool alarmActive) {
 }
 
 void drawSensorReading(bool safe, int mq2Value, bool flameDetected,
-                       float temperature, float humidity) {
+                       float temperature, float humidity, float aiRisk = 0.0f) {
   const uint16_t background = safe ? ILI9341_DARKGREEN : ILI9341_RED;
-  tft.fillRect(0, 145, tft.width(), 95, background);
+  tft.fillRect(0, 140, tft.width(), 100, background);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
-  tft.setCursor(24, 150);
+  tft.setCursor(24, 145);
   tft.printf("MQ-2: %d/4095", mq2Value);
-  tft.setCursor(24, 172);
+  tft.setCursor(24, 168);
   tft.printf("LUA: %s", flameDetected ? "PHAT HIEN" : "KHONG");
-  tft.setCursor(24, 194);
+  tft.setCursor(24, 191);
   if (isnan(temperature) || isnan(humidity)) {
     tft.print("T:--.-C RH:--%");
   } else {
     tft.printf("T:%.1fC RH:%.0f%%", temperature, humidity);
   }
-  tft.setCursor(24, 216);
-  tft.printf("MQ:%d/%d T:%.0fC", MQ2_ALARM_THRESHOLD, MQ2_CLEAR_THRESHOLD,
-             TEMP_ALARM_THRESHOLD_C);
+  tft.setCursor(24, 214);
+  tft.printf("TinyML: %.1f%% (%s)", aiRisk * 100.0f, tinyml_get_risk_label(aiRisk));
 }
 
 void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
-                float humidity) {
+                float humidity, float aiRisk = 0.0f) {
   const bool displaySafe = safe && !masterAlarmOverride;
   const uint16_t background = displaySafe ? ILI9341_DARKGREEN : ILI9341_RED;
 
@@ -100,7 +100,7 @@ void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
   tft.print(title);
 
   drawSensorReading(displaySafe, mq2Value, flameDetected, temperature,
-                    humidity);
+                    humidity, aiRisk);
   applyActuatorOutputs(!safe);
 
   Serial.println(safe ? F("[AN TOAN] Servo mo cua")
@@ -264,6 +264,10 @@ void loop() {
     const bool nextSafe =
         !mq2AlarmActive && !flameDetected && !temperatureAlarmActive;
 
+    const float curTemp = isnan(temperatureC) ? 28.0f : temperatureC;
+    const float curHum = isnan(humidityPercent) ? 65.0f : humidityPercent;
+    const float aiRisk = tinyml_predict_fire_risk(static_cast<float>(mq2Value), curTemp, flameDetected ? 1.0f : 0.0f, curHum);
+
     if (nextSafe != showingSafe) {
       if (!nextSafe) {
         manualOverrideUntil =
@@ -272,21 +276,20 @@ void loop() {
       if (!nextSafe || now >= manualOverrideUntil) {
         showingSafe = nextSafe;
         showStatus(showingSafe, mq2Value, flameDetected, temperatureC,
-                   humidityPercent);
+                   humidityPercent, aiRisk);
       }
     } else if (static_cast<uint32_t>(now - lastSerialReport) >=
                SERIAL_REPORT_INTERVAL_MS) {
       drawSensorReading(showingSafe, mq2Value, flameDetected, temperatureC,
-                        humidityPercent);
+                        humidityPercent, aiRisk);
     }
 
     if (static_cast<uint32_t>(now - lastSerialReport) >=
         SERIAL_REPORT_INTERVAL_MS) {
       lastSerialReport = now;
-      Serial.printf("MQ-2 ADC: %d | Lua: %s | Nhiet do: %.1f C | Do am: %.0f%% "
-                    "| Trang thai: %s\n",
+      Serial.printf("MQ-2 ADC: %d | Lua: %s | Nhiet do: %.1f C | Do am: %.0f%% | AI Risk: %.1f%% | Trang thai: %s\n",
                     mq2Value, flameDetected ? "PHAT HIEN" : "KHONG",
-                    temperatureC, humidityPercent,
+                    temperatureC, humidityPercent, aiRisk * 100.0f,
                     showingSafe ? "AN TOAN" : "CANH BAO");
     }
   }

@@ -51,9 +51,9 @@ class IsolationDetector:
         """Generates representative normal ambient indoor sensor readings."""
         samples = []
         for i in range(num_samples):
-            # Normal smoke: 20-45 ppm, temp: 22-26 C, flame: 0
-            smoke_val = 30.0 + (i % 15) - 7.5
-            temp_val = 24.0 + ((i * 3) % 5) - 2.0
+            # Normal ambient indoor readings: smoke ADC 120-180, temp 24-28 C, flame 0
+            smoke_val = 150.0 + ((i % 25) - 12.0) * 2.0
+            temp_val = 26.0 + ((i * 3) % 7) - 3.0
             flame_val = 0.0
             samples.append([float(smoke_val), float(temp_val), float(flame_val)])
         return samples
@@ -109,7 +109,7 @@ class IsolationDetector:
 
         if not HAS_SKLEARN or self.model is None:
             # Statistical rule-based fallback
-            is_anom = 1 if (s > 80.0 or t > 45.0 or f > 0.5) else 0
+            is_anom = 1 if (s > 800.0 or t > 45.0 or f > 0.5) else 0
             score = 0.95 if is_anom else 0.15
             return is_anom, score
 
@@ -124,10 +124,10 @@ class IsolationDetector:
             # Sigmoid mapping: decision_function > 0 -> < 0.5, decision_function < 0 -> >= 0.5
             norm = 1.0 / (1.0 + math.exp(raw_df * 15.0))
             anomaly_score = round(min(1.0, max(0.0, norm)), 2)
-            is_anomaly = 1 if (pred == -1 or anomaly_score >= 0.5 or f > 0.5 or s > 150.0) else 0
+            is_anomaly = 1 if (pred == -1 or anomaly_score >= 0.65 or f > 0.5 or s > 800.0 or t > 45.0) else 0
 
             # For active fire or extreme smoke, boost score to reflect severity
-            if f > 0.5 or s > 150.0:
+            if f > 0.5 or s > 800.0 or t > 45.0:
                 anomaly_score = max(anomaly_score, 0.90)
 
             # Prevent model poisoning: only add normal samples to training buffer

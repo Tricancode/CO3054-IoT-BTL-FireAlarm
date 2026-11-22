@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import queue
+import re
 import sys
 import threading
 import time
@@ -58,6 +59,49 @@ GATEWAY_TELEMETRY_TOPIC = "v1/gateway/telemetry"
 GATEWAY_RPC_TOPIC = "v1/gateway/rpc"
 
 
+def parse_uart_payload(line: str) -> Optional[Dict[str, Any]]:
+    """Parse UART telemetry lines supporting both JSON and 01_Firmware_EndNode format."""
+    if not line:
+        return None
+    cleaned = line.strip()
+
+    # 1. Standard JSON string
+    if cleaned.startswith("{") and cleaned.endswith("}"):
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+    # 2. Text log from 01_Firmware_EndNode (main.cpp line 159)
+    # e.g.: "MQ-2 ADC: 1450 | Lua: KHONG | Nhiet do: 28.5 C | Do am: 65% | Trang thai: AN TOAN"
+    m = re.search(
+        r'MQ-2 ADC:\s*(\d+).*?Lua:\s*(PHAT HIEN|KHONG|0|1).*?Nhiet do:\s*([\d\.\-]+).*?Do am:\s*([\d\.\-]+)',
+        cleaned,
+        re.IGNORECASE
+    )
+    if m:
+        mq2_val = float(m.group(1))
+        flame_str = m.group(2).upper()
+        flame_val = 1 if ("PHAT HIEN" in flame_str or flame_str == "1") else 0
+        try:
+            temp_val = float(m.group(3))
+        except ValueError:
+            temp_val = 24.0
+        try:
+            hum_val = float(m.group(4))
+        except ValueError:
+            hum_val = 50.0
+
+        return {
+            "smoke": mq2_val,
+            "flame": flame_val,
+            "temperature": temp_val,
+            "humidity": hum_val
+        }
+
+    return None
+
+
 class HardwareSerialAdapter:
     """Manages UART serial connectivity to the physical YoloUNO ESP32-S3 board."""
 
@@ -73,7 +117,7 @@ class HardwareSerialAdapter:
         for p in ports:
             desc = (p.description or "").upper()
             hwid = (p.hwid or "").upper()
-            if any(k in desc or k in hwid for k in ["ESP32", "CH340", "CP210", "UART", "USB SERIAL"]):
+            if any(k in desc or k in hwid for k in ["ESP32", "CH340", "CP210", "UART", "USB SERIAL", "303A"]):
                 print(f"[UART Auto-detect] Identified IoT board at {p.device} ({p.description})")
                 return p.device
         if ports:
@@ -87,6 +131,11 @@ class HardwareSerialAdapter:
         with self.lock:
             try:
                 self.ser = serial.Serial(target_port, self.baudrate, timeout=1.0)
+                try:
+                    self.ser.dtr = True
+                    self.ser.rts = True
+                except Exception:
+                    pass
                 self.ser.reset_input_buffer()
                 print(f"[UART Serial] Opened port {target_port} at {self.baudrate} baud.")
                 return True
@@ -240,12 +289,16 @@ class LocalHardwareGateway:
                     self.command_queue.put(local_cmd)
 
                 # Gateway RPC response
-                resp_payload = {
-                    "device": target_dev,
-                    "id": req_id,
-                    "data": {"status": "SUCCESS", "applied": local_cmd}
-                }
-                client.publish(GATEWAY_RPC_TOPIC, json.dumps(resp_payload))
+                if req_id is not None and target_dev:
+                    resp_payload = {
+                        "device": target_dev,
+                        "id": req_id,
+                        "data": {"success": True}
+                    }
+                    try:
+                        client.publish(GATEWAY_RPC_TOPIC, json.dumps(resp_payload))
+                    except Exception:
+                        pass
 
             elif msg.topic.startswith("v1/devices/me/rpc/request/"):
                 req_id = msg.topic.split("/")[-1]
@@ -304,12 +357,12 @@ class LocalHardwareGateway:
                     unsynced = self.buffer_repo.fetch_unsynced(limit=25)
                     synced_ids = []
                     for rec_id, payload_str in unsynced:
+                        info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
                         if self.use_gateway_api:
                             rec_data = json.loads(payload_str)
-                            gw_msg = {self.device_name: [rec_data]}
-                            info = self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
-                        else:
-                            info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
+                            gw_dev = "YOLOUNO_FIRE_NODE_01" if self.device_name == "FireAlarm_Gateway" else self.device_name
+                            gw_msg = {gw_dev: [{"ts": int(time.time() * 1000), "values": rec_data}]}
+                            self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
 
                         if info.rc == mqtt.MQTT_ERR_SUCCESS:
                             synced_ids.append(rec_id)
@@ -319,6 +372,11 @@ class LocalHardwareGateway:
                     if synced_ids:
                         self.buffer_repo.mark_synced(synced_ids)
                         print(f"[Buffer Sync] Synchronized {len(synced_ids)} buffered records to CoreIOT.")
+
+                    # Periodic SQLite housekeeping: purge synced records older than 7 days
+                    purged = self.buffer_repo.purge_synced(older_than_days=7.0)
+                    if purged > 0:
+                        print(f"[Buffer Maintenance] Purged {purged} expired synced records from offline database.")
 
             except Exception as e:
                 print(f"[Sync Worker Error] Synchronization error: {e}")
@@ -375,10 +433,9 @@ class LocalHardwareGateway:
                         time.sleep(0.05)
                     continue
 
-                if line.startswith("{") and line.endswith("}"):
+                payload = parse_uart_payload(line)
+                if payload:
                     try:
-                        payload = json.loads(line)
-
                         # Run Isolation Forest Anomaly Detection
                         s_val = float(payload.get("smoke", 0.0))
                         t_val = float(payload.get("temperature", 24.0))
@@ -394,21 +451,23 @@ class LocalHardwareGateway:
                             self.latest_telemetry["last_seen"] = int(now_ts)
                             cloud_ready = self.latest_telemetry["cloud_connected"]
 
-                        print(f"[UART RX ESP32-S3] Smoke: {payload.get('smoke')} | Flame: {payload.get('flame')} | Anomaly: {is_anom} (Score: {anom_score})")
+                        print(f"[UART RX ESP32-S3] Smoke: {payload.get('smoke')} | Flame: {payload.get('flame')} | Temp: {payload.get('temperature')} C | Anomaly: {is_anom}")
 
                         # Store in SQLite buffer
                         self.buffer_repo.insert(payload)
 
                         # Publish to Cloud if connected
                         if cloud_ready:
+                            # 1. Publish to device telemetry topic (guarantees Dashboard and RuleChain updates)
+                            self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
+                            # 2. Also publish to Gateway topic if enabled
                             if self.use_gateway_api:
-                                gw_msg = {self.device_name: [payload]}
+                                gw_dev = "YOLOUNO_FIRE_NODE_01" if self.device_name == "FireAlarm_Gateway" else self.device_name
+                                gw_msg = {gw_dev: [{"ts": int(now_ts * 1000), "values": payload}]}
                                 self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
-                            else:
-                                self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
 
-                    except json.JSONDecodeError:
-                        print(f"[UART Raw Log] {line}")
+                    except Exception as parse_err:
+                        print(f"[Gateway Processing Error] {parse_err}")
                 else:
                     print(f"[UART Raw Log] {line}")
 

@@ -778,6 +778,25 @@ class OfflineBufferRepository:
             finally:
                 conn.close()
 
+    def purge_synced(self, older_than_days: float = 7.0) -> int:
+        """Purge synchronized records older than the specified retention window to avoid database bloat."""
+        cutoff_time = time.time() - (older_than_days * 86400.0)
+        with self.lock:
+            conn = sqlite3.connect(self.db_file)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM telemetry_buffer WHERE synced = 1 AND timestamp < ?",
+                    (cutoff_time,),
+                )
+                deleted = cursor.rowcount
+                conn.commit()
+                return deleted
+            except Exception:
+                return 0
+            finally:
+                conn.close()
+
 
 def create_web_handler(
     data_provider: Callable[[], Dict[str, Any]],

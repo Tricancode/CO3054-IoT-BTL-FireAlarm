@@ -1,0 +1,21 @@
+services:
+  tb-postgres:
+    image: "thingsboard/tb-postgres:latest"
+    container_name: "thingsboard-local"
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+      - "1883:1883"
+      - "7070:7070"
+      - "5683-5688:5683-5688/udp"
+    environment:
+      TB_QUEUE_TYPE: in-memory
+    volumes:
+      - tb-data:/usr/share/thingsboard/data
+      - tb-logs:/usr/share/thingsboard/logs
+
+volumes:
+  tb-data:
+    name: tb-data
+  tb-logs:
+    name: tb-logs

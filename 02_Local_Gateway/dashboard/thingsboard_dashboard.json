@@ -1,0 +1,988 @@
+{
+  "title": "Industrial Fire Alarm & Suppression System",
+  "configuration": {
+    "description": "Industrial Fire Alarm Telemetry and Remote Actuator Control Dashboard",
+    "widgets": {
+      "a1111111-0000-0000-0000-000000000001": {
+        "id": "a1111111-0000-0000-0000-000000000001",
+        "type": "latest",
+        "typeFullFqn": "system.analogue_gauges.radial_gauge_canvas_gauges",
+        "sizeX": 6,
+        "sizeY": 6,
+        "row": 0,
+        "col": 0,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "11111111-2222-3333-4444-555555555555",
+              "dataKeys": [
+                {
+                  "name": "smoke",
+                  "type": "timeseries",
+                  "label": "Smoke PPM",
+                  "color": "#d32f2f",
+                  "settings": {},
+                  "_hash": 0.11
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "rgb(255, 255, 255)",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "8px",
+          "settings": {
+            "maxValue": 1000,
+            "startAngle": 45,
+            "ticksAngle": 270,
+            "showBorder": true,
+            "defaultColor": "#e65100",
+            "needleCircleSize": 10,
+            "highlights": [
+              {
+                "from": 0,
+                "to": 300,
+                "color": "#4caf50"
+              },
+              {
+                "from": 300,
+                "to": 600,
+                "color": "#ff9800"
+              },
+              {
+                "from": 600,
+                "to": 1000,
+                "color": "#f44336"
+              }
+            ],
+            "showUnitTitle": true,
+            "colorPlate": "#fff",
+            "colorMajorTicks": "#444",
+            "colorMinorTicks": "#666",
+            "minorTicks": 10,
+            "valueInt": 3,
+            "highlightsWidth": 15,
+            "valueBox": true,
+            "animation": true,
+            "animationDuration": 500,
+            "animationRule": "cycle",
+            "colorNeedleShadowUp": "rgba(2, 255, 255, 0)",
+            "numbersFont": {
+              "family": "Roboto",
+              "size": 18,
+              "style": "normal",
+              "weight": "500",
+              "color": "#616161"
+            },
+            "titleFont": {
+              "family": "Roboto",
+              "size": 24,
+              "style": "normal",
+              "weight": "500",
+              "color": "#888"
+            },
+            "unitsFont": {
+              "family": "Roboto",
+              "size": 22,
+              "style": "normal",
+              "weight": "500",
+              "color": "#616161"
+            },
+            "valueFont": {
+              "family": "Segment7Standard",
+              "size": 36,
+              "style": "normal",
+              "weight": "normal",
+              "shadowColor": "rgba(0, 0, 0, 0.49)",
+              "color": "#444"
+            },
+            "minValue": 0,
+            "colorNeedleShadowDown": "rgba(188,143,143,0.45)",
+            "colorValueBoxRect": "#888",
+            "colorValueBoxRectEnd": "#666",
+            "colorValueBoxBackground": "#babab2",
+            "colorValueBoxShadow": "rgba(0,0,0,1)"
+          },
+          "title": "Smoke Density (PPM)",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "widgetStyle": {},
+          "widgetCss": "",
+          "pageSize": 1024,
+          "decimals": 0,
+          "noDataDisplayMessage": "",
+          "configMode": "basic",
+          "units": "ppm"
+        }
+      },
+      "a1111111-0000-0000-0000-000000000002": {
+        "id": "a1111111-0000-0000-0000-000000000002",
+        "type": "latest",
+        "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
+        "sizeX": 6,
+        "sizeY": 6,
+        "row": 0,
+        "col": 6,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "11111111-2222-3333-4444-555555555555",
+              "dataKeys": [
+                {
+                  "name": "flame",
+                  "type": "timeseries",
+                  "label": "Flame Active",
+                  "color": "#ff9800",
+                  "settings": {},
+                  "_hash": 0.22
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "maxValue": 1,
+            "minValue": 0,
+            "donutStartAngle": 90,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "levelColors": [
+              "#4caf50",
+              "#f44336"
+            ],
+            "refreshAnimationType": ">",
+            "refreshAnimationTime": 700,
+            "startAnimationType": ">",
+            "startAnimationTime": 700,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "style": "normal",
+              "weight": "500",
+              "size": 32,
+              "color": "#666666"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "neonGlowBrightness": 0,
+            "dashThickness": 0,
+            "decimals": 0,
+            "gaugeColor": "#eeeeee",
+            "gaugeType": "donut"
+          },
+          "title": "Flame Detector Status",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "configMode": "basic",
+          "units": ""
+        }
+      },
+      "a1111111-0000-0000-0000-000000000007": {
+        "id": "a1111111-0000-0000-0000-000000000007",
+        "type": "latest",
+        "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
+        "sizeX": 6,
+        "sizeY": 6,
+        "row": 0,
+        "col": 12,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "11111111-2222-3333-4444-555555555555",
+              "dataKeys": [
+                {
+                  "name": "is_anomaly",
+                  "type": "timeseries",
+                  "label": "Anomaly Flag",
+                  "color": "#e91e63",
+                  "settings": {},
+                  "_hash": 0.41
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "maxValue": 1,
+            "minValue": 0,
+            "donutStartAngle": 90,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "levelColors": [
+              "#4caf50",
+              "#f44336"
+            ],
+            "refreshAnimationType": ">",
+            "refreshAnimationTime": 700,
+            "startAnimationType": ">",
+            "startAnimationTime": 700,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "style": "normal",
+              "weight": "500",
+              "size": 32,
+              "color": "#666666"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "neonGlowBrightness": 0,
+            "dashThickness": 0,
+            "decimals": 0,
+            "gaugeColor": "#eeeeee",
+            "gaugeType": "donut"
+          },
+          "title": "AI Anomaly Status",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "configMode": "basic",
+          "units": ""
+        }
+      },
+      "a1111111-0000-0000-0000-000000000008": {
+        "id": "a1111111-0000-0000-0000-000000000008",
+        "type": "latest",
+        "typeFullFqn": "system.digital_gauges.simple_gauge_justgage",
+        "sizeX": 6,
+        "sizeY": 6,
+        "row": 0,
+        "col": 18,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "11111111-2222-3333-4444-555555555555",
+              "dataKeys": [
+                {
+                  "name": "anomaly_score",
+                  "type": "timeseries",
+                  "label": "Anomaly Score",
+                  "color": "#9c27b0",
+                  "settings": {},
+                  "_hash": 0.42
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 60000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "maxValue": 1.0,
+            "minValue": 0.0,
+            "donutStartAngle": 90,
+            "showValue": true,
+            "showMinMax": true,
+            "gaugeWidthScale": 0.75,
+            "levelColors": [
+              "#4caf50",
+              "#ff9800",
+              "#f44336"
+            ],
+            "refreshAnimationType": ">",
+            "refreshAnimationTime": 700,
+            "startAnimationType": ">",
+            "startAnimationTime": 700,
+            "titleFont": {
+              "family": "Roboto",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "labelFont": {
+              "family": "Roboto",
+              "size": 8,
+              "style": "normal",
+              "weight": "500"
+            },
+            "valueFont": {
+              "family": "Roboto",
+              "style": "normal",
+              "weight": "500",
+              "size": 32,
+              "color": "#666666"
+            },
+            "minMaxFont": {
+              "family": "Segment7Standard",
+              "size": 12,
+              "style": "normal",
+              "weight": "500"
+            },
+            "neonGlowBrightness": 0,
+            "dashThickness": 0,
+            "decimals": 2,
+            "gaugeColor": "#eeeeee",
+            "gaugeType": "donut"
+          },
+          "title": "Isolation Forest Anomaly Score",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "configMode": "basic",
+          "units": "",
+          "decimals": 2
+        }
+      },
+      "a1111111-0000-0000-0000-000000000003": {
+        "id": "a1111111-0000-0000-0000-000000000003",
+        "type": "timeseries",
+        "typeFullFqn": "system.time_series_chart",
+        "sizeX": 15,
+        "sizeY": 7,
+        "row": 6,
+        "col": 0,
+        "config": {
+          "datasources": [
+            {
+              "type": "entity",
+              "entityAliasId": "11111111-2222-3333-4444-555555555555",
+              "dataKeys": [
+                {
+                  "name": "smoke",
+                  "type": "timeseries",
+                  "label": "Smoke (ppm)",
+                  "color": "#f44336",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "smooth": true,
+                      "lineType": "solid",
+                      "lineWidth": 2.5
+                    }
+                  },
+                  "_hash": 0.31
+                },
+                {
+                  "name": "temperature",
+                  "type": "timeseries",
+                  "label": "Temperature (C)",
+                  "color": "#2196f3",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "smooth": true,
+                      "lineType": "solid",
+                      "lineWidth": 2.5
+                    }
+                  },
+                  "_hash": 0.32
+                },
+                {
+                  "name": "flame",
+                  "type": "timeseries",
+                  "label": "Flame Status",
+                  "color": "#ff9800",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "smooth": true,
+                      "lineType": "solid",
+                      "lineWidth": 2.5
+                    }
+                  },
+                  "_hash": 0.33
+                },
+                {
+                  "name": "anomaly_score",
+                  "type": "timeseries",
+                  "label": "Anomaly Score",
+                  "color": "#9c27b0",
+                  "settings": {
+                    "yAxisId": "default",
+                    "showInLegend": true,
+                    "dataHiddenByDefault": false,
+                    "type": "line",
+                    "lineSettings": {
+                      "showLine": true,
+                      "step": false,
+                      "smooth": true,
+                      "lineType": "solid",
+                      "lineWidth": 2.5
+                    }
+                  },
+                  "_hash": 0.34
+                }
+              ]
+            }
+          ],
+          "timewindow": {
+            "realtime": {
+              "timewindowMs": 300000,
+              "interval": 1000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "showLegend": true,
+            "legendConfig": {
+              "direction": "column",
+              "position": "bottom",
+              "sortDataKeys": false,
+              "showMin": true,
+              "showMax": true,
+              "showAvg": true,
+              "showTotal": false,
+              "showLatest": false
+            },
+            "thresholds": [
+              {
+                "type": "latestKey",
+                "yAxisId": "default",
+                "units": "\u00b0C",
+                "decimals": 0,
+                "lineColor": "rgb(233, 30, 99)",
+                "lineType": "solid",
+                "lineWidth": 2,
+                "startSymbol": "none",
+                "startSymbolSize": 5,
+                "endSymbol": "arrow",
+                "endSymbolSize": 8,
+                "showLabel": true,
+                "labelPosition": "end",
+                "labelFont": {
+                  "size": 14,
+                  "family": "Roboto",
+                  "weight": "500",
+                  "style": "normal"
+                },
+                "labelColor": "rgb(233, 30, 99)",
+                "latestKey": "temperatureAlarmThreshold",
+                "latestKeyType": "attribute"
+              }
+            ],
+            "dataZoom": true,
+            "stack": false,
+            "yAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "rgba(0, 0, 0, 0.54)",
+              "position": "left",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "rgba(0, 0, 0, 0.54)",
+              "showTicks": true,
+              "ticksColor": "rgba(0, 0, 0, 0.54)",
+              "showLine": true,
+              "lineColor": "rgba(0, 0, 0, 0.54)",
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0, 0, 0, 0.12)"
+            },
+            "xAxis": {
+              "show": true,
+              "label": "",
+              "labelFont": {
+                "family": "Roboto",
+                "size": 12,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "600",
+                "lineHeight": "1"
+              },
+              "labelColor": "rgba(0, 0, 0, 0.54)",
+              "position": "bottom",
+              "showTickLabels": true,
+              "tickLabelFont": {
+                "family": "Roboto",
+                "size": 10,
+                "sizeUnit": "px",
+                "style": "normal",
+                "weight": "400",
+                "lineHeight": "1"
+              },
+              "tickLabelColor": "rgba(0, 0, 0, 0.54)",
+              "showTicks": true,
+              "ticksColor": "rgba(0, 0, 0, 0.54)",
+              "showLine": true,
+              "lineColor": "rgba(0, 0, 0, 0.54)",
+              "showSplitLines": true,
+              "splitLinesColor": "rgba(0, 0, 0, 0.12)",
+              "ticksFormat": {}
+            },
+            "legendLabelFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "legendLabelColor": "rgba(0, 0, 0, 0.76)",
+            "showTooltip": true,
+            "tooltipTrigger": "axis",
+            "tooltipValueFont": {
+              "family": "Roboto",
+              "size": 12,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "16px"
+            },
+            "tooltipValueColor": "rgba(0, 0, 0, 0.76)",
+            "tooltipShowDate": true,
+            "tooltipDateFormat": {
+              "format": "MMM dd yyyy HH:mm",
+              "lastUpdateAgo": false,
+              "custom": false,
+              "auto": true,
+              "autoDateFormatSettings": {}
+            },
+            "tooltipDateFont": {
+              "family": "Roboto",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "400",
+              "lineHeight": "16px"
+            },
+            "tooltipDateColor": "rgba(0, 0, 0, 0.76)",
+            "tooltipDateInterval": false,
+            "tooltipBackgroundColor": "rgba(255, 255, 255, 0.76)",
+            "tooltipBackgroundBlur": 4,
+            "background": {
+              "type": "color",
+              "color": "#fff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "yAxes": {
+              "default": {
+                "units": "\u00b0C",
+                "decimals": 0,
+                "show": true,
+                "label": "",
+                "labelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "600",
+                  "lineHeight": "1"
+                },
+                "labelColor": "rgba(0, 0, 0, 0.54)",
+                "position": "left",
+                "showTickLabels": true,
+                "tickLabelFont": {
+                  "family": "Roboto",
+                  "size": 12,
+                  "sizeUnit": "px",
+                  "style": "normal",
+                  "weight": "400",
+                  "lineHeight": "1"
+                },
+                "tickLabelColor": "rgba(0, 0, 0, 0.54)",
+                "ticksFormatter": null,
+                "showTicks": true,
+                "ticksColor": "rgba(0, 0, 0, 0.54)",
+                "showLine": true,
+                "lineColor": "rgba(0, 0, 0, 0.54)",
+                "showSplitLines": true,
+                "splitLinesColor": "rgba(0, 0, 0, 0.12)",
+                "id": "default",
+                "order": 0,
+                "min": 0
+              }
+            },
+            "noAggregationBarWidthSettings": {
+              "strategy": "group",
+              "groupWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              },
+              "barWidth": {
+                "relative": true,
+                "relativeWidth": 2,
+                "absoluteWidth": 1000
+              }
+            },
+            "animation": {
+              "animation": true,
+              "animationThreshold": 2000,
+              "animationDuration": 500,
+              "animationEasing": "cubicOut",
+              "animationDelay": 0,
+              "animationDurationUpdate": 300,
+              "animationEasingUpdate": "cubicOut",
+              "animationDelayUpdate": 0
+            },
+            "padding": "12px"
+          },
+          "title": "Environmental Telemetry History",
+          "dropShadow": true,
+          "enableFullscreen": true,
+          "titleStyle": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": false,
+          "titleIcon": "thermostat",
+          "iconColor": "#1F6BDD",
+          "useDashboardTimewindow": false,
+          "displayTimewindow": true,
+          "titleFont": {
+            "size": 16,
+            "sizeUnit": "px",
+            "family": "Roboto",
+            "weight": "500",
+            "style": "normal",
+            "lineHeight": "24px"
+          },
+          "titleColor": "rgba(0, 0, 0, 0.87)",
+          "titleTooltip": "",
+          "widgetStyle": {},
+          "widgetCss": "",
+          "pageSize": 1024,
+          "units": "",
+          "decimals": null,
+          "noDataDisplayMessage": "",
+          "timewindowStyle": {
+            "showIcon": false,
+            "iconSize": "24px",
+            "icon": null,
+            "iconPosition": "left",
+            "font": {
+              "size": 12,
+              "sizeUnit": "px",
+              "family": "Roboto",
+              "weight": "400",
+              "style": "normal",
+              "lineHeight": "16px"
+            },
+            "color": "rgba(0, 0, 0, 0.38)",
+            "displayTypePrefix": true
+          },
+          "margin": "0px",
+          "borderRadius": "0px",
+          "iconSize": "0px"
+        }
+      },
+      "a1111111-0000-0000-0000-000000000004": {
+        "id": "a1111111-0000-0000-0000-000000000004",
+        "type": "rpc",
+        "typeFullFqn": "system.control_widgets.round_switch",
+        "sizeX": 3,
+        "sizeY": 7,
+        "row": 6,
+        "col": 15,
+        "config": {
+          "targetDeviceAliases": [],
+          "showTitle": true,
+          "backgroundColor": "#e6e7e8",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "requestTimeout": 1000,
+            "initialValue": false,
+            "getValueMethod": "getServo",
+            "setValueMethod": "setServo",
+            "title": "Round switch",
+            "retrieveValueMethod": "rpc",
+            "valueKey": "value",
+            "parseValueFunction": "return data ? true : false;",
+            "convertValueFunction": "return value ? 90 : 0;"
+          },
+          "title": "Fire Door & Suppression Servo",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "useDashboardTimewindow": true,
+          "showLegend": false,
+          "actions": {},
+          "decimals": 2,
+          "targetDeviceAliasIds": [
+            "11111111-2222-3333-4444-555555555555"
+          ]
+        }
+      },
+      "a1111111-0000-0000-0000-000000000005": {
+        "id": "a1111111-0000-0000-0000-000000000005",
+        "type": "rpc",
+        "typeFullFqn": "system.control_widgets.switch_control",
+        "sizeX": 3,
+        "sizeY": 7,
+        "row": 6,
+        "col": 18,
+        "config": {
+          "targetDeviceAliases": [],
+          "showTitle": true,
+          "backgroundColor": "#e6e7e8",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "requestTimeout": 1000,
+            "initialValue": false,
+            "getValueMethod": "getBuzzer",
+            "setValueMethod": "setBuzzer",
+            "showOnOffLabels": true,
+            "title": "Switch control"
+          },
+          "title": "Alarm Siren Buzzer",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "useDashboardTimewindow": true,
+          "showLegend": false,
+          "actions": {},
+          "decimals": 2,
+          "targetDeviceAliasIds": [
+            "11111111-2222-3333-4444-555555555555"
+          ]
+        }
+      },
+      "a1111111-0000-0000-0000-000000000006": {
+        "id": "a1111111-0000-0000-0000-000000000006",
+        "type": "rpc",
+        "typeFullFqn": "system.control_widgets.switch_control",
+        "sizeX": 3,
+        "sizeY": 7,
+        "row": 6,
+        "col": 21,
+        "config": {
+          "targetDeviceAliases": [],
+          "showTitle": true,
+          "backgroundColor": "#e6e7e8",
+          "color": "rgba(0, 0, 0, 0.87)",
+          "padding": "0px",
+          "settings": {
+            "requestTimeout": 1000,
+            "initialValue": false,
+            "getValueMethod": "getLed",
+            "setValueMethod": "setLed",
+            "showOnOffLabels": true,
+            "title": "Switch control"
+          },
+          "title": "Strobe LED Beacon",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {},
+          "titleStyle": {
+            "fontSize": "16px",
+            "fontWeight": 400
+          },
+          "useDashboardTimewindow": true,
+          "showLegend": false,
+          "actions": {},
+          "decimals": 2,
+          "targetDeviceAliasIds": [
+            "11111111-2222-3333-4444-555555555555"
+          ]
+        }
+      }
+    },
+    "states": {
+      "default": {
+        "name": "Industrial Fire Alarm & Suppression System",
+        "root": true,
+        "layouts": {
+          "main": {
+            "widgets": {
+              "a1111111-0000-0000-0000-000000000001": {
+                "sizeX": 6,
+                "sizeY": 6,
+                "row": 0,
+                "col": 0
+              },
+              "a1111111-0000-0000-0000-000000000002": {
+                "sizeX": 6,
+                "sizeY": 6,
+                "row": 0,
+                "col": 6
+              },
+              "a1111111-0000-0000-0000-000000000007": {
+                "sizeX": 6,
+                "sizeY": 6,
+                "row": 0,
+                "col": 12
+              },
+              "a1111111-0000-0000-0000-000000000008": {
+                "sizeX": 6,
+                "sizeY": 6,
+                "row": 0,
+                "col": 18
+              },
+              "a1111111-0000-0000-0000-000000000003": {
+                "sizeX": 15,
+                "sizeY": 7,
+                "row": 6,
+                "col": 0
+              },
+              "a1111111-0000-0000-0000-000000000004": {
+                "sizeX": 3,
+                "sizeY": 7,
+                "row": 6,
+                "col": 15
+              },
+              "a1111111-0000-0000-0000-000000000005": {
+                "sizeX": 3,
+                "sizeY": 7,
+                "row": 6,
+                "col": 18
+              },
+              "a1111111-0000-0000-0000-000000000006": {
+                "sizeX": 3,
+                "sizeY": 7,
+                "row": 6,
+                "col": 21
+              }
+            },
+            "gridSettings": {
+              "columns": 24,
+              "margins": [
+                10,
+                10
+              ],
+              "backgroundColor": "#f4f6f8"
+            }
+          }
+        }
+      }
+    },
+    "entityAliases": {
+      "11111111-2222-3333-4444-555555555555": {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "alias": "FireAlarm_Gateway",
+        "filter": {
+          "type": "singleEntity",
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "d490d710-e55c-11f1-b536-af039a103c55"
+          },
+          "resolveMultiple": false
+        }
+      }
+    },
+    "timewindow": {
+      "realtime": {
+        "timewindowMs": 300000,
+        "interval": 1000
+      }
+    },
+    "settings": {
+      "stateControllerId": "entity",
+      "showTitle": true,
+      "showDashboardsSelect": true,
+      "showEntitiesSelect": false,
+      "showDashboardTimewindow": true
+    }
+  }
+}

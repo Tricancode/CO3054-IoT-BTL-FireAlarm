@@ -192,7 +192,7 @@ class LocalHardwareGateway:
         broker: str = BROKER_ADDRESS,
         token: str = ACCESS_TOKEN,
         device_name: str = DEFAULT_DEVICE_NAME,
-        use_gateway_api: bool = True,
+        use_gateway_api: bool = False,
     ):
         # 1. Offline storage repository (SQLite WAL)
         self.db_path = Path("gateway_hardware_buffer.db")
@@ -216,9 +216,11 @@ class LocalHardwareGateway:
         self.latest_telemetry: Dict[str, Any] = {
             "smoke": 0.0,
             "flame": 0,
+            "temperature": 0.0,
             "servo": 0,
             "buzzer": 0,
             "led": 0,
+            "alarm_override": 0,
             "is_anomaly": 0,
             "anomaly_score": 0.0,
             "timestamp": time.time(),
@@ -227,6 +229,9 @@ class LocalHardwareGateway:
             "buffer_count": 0,
             "gateway_type": "Hardware (UART ESP32-S3)"
         }
+        self.local_alarm_active = False
+        self._mq2_alarm_active = False
+        self._temperature_alarm_active = False
 
         # 6. CoreIOT / ThingsBoard MQTT Client
         try:
@@ -264,6 +269,82 @@ class LocalHardwareGateway:
         with self.telemetry_lock:
             self.latest_telemetry["cloud_connected"] = False
 
+    def sensor_alarm_active(self) -> bool:
+        with self.telemetry_lock:
+            return self.local_alarm_active
+
+    def update_sensor_alarm_state(self, payload: Dict[str, Any]):
+        smoke = float(payload.get("smoke", 0.0) or 0.0)
+        flame = int(payload.get("flame", 0) or 0)
+        temperature = float(payload.get("temperature", 0.0) or 0.0)
+        with self.telemetry_lock:
+            previous = self.local_alarm_active
+            if not self._mq2_alarm_active and smoke >= 1800.0:
+                self._mq2_alarm_active = True
+            elif self._mq2_alarm_active and smoke <= 1650.0:
+                self._mq2_alarm_active = False
+            if not self._temperature_alarm_active and temperature >= 35.0:
+                self._temperature_alarm_active = True
+            elif self._temperature_alarm_active and temperature <= 34.0:
+                self._temperature_alarm_active = False
+            self.local_alarm_active = (
+                self._mq2_alarm_active or self._temperature_alarm_active or flame == 1
+            )
+            return self.local_alarm_active, self.local_alarm_active != previous
+
+    def rpc_state(self, method: str):
+        state_keys = {
+            "getAlarmOverride": "alarm_override",
+            "getBuzzer": "buzzer",
+            "getLed": "led",
+        }
+        key = state_keys.get(method)
+        if key is None:
+            return None
+        with self.telemetry_lock:
+            return bool(self.latest_telemetry.get(key, 0))
+
+    def rpc_command(self, method: str, params) -> Dict[str, Any]:
+        manual_methods = {
+            "setAlarmOverride": "alarm_override",
+            "manualSetBuzzer": "buzzer",
+            "manualSetLed": "led",
+        }
+        automatic_methods = {
+            "setServo": "servo",
+            "servo": "servo",
+            "setBuzzer": "buzzer",
+            "buzzer": "buzzer",
+            "setLed": "led",
+            "led": "led",
+        }
+        key = manual_methods.get(method)
+        is_manual = key is not None
+        if key is None:
+            key = automatic_methods.get(method)
+        if key is None:
+            return {}
+
+        if key == "servo":
+            try:
+                value = int(params)
+            except (TypeError, ValueError):
+                return {}
+        else:
+            value = 1 if params in (True, 1, "1", "true") else 0
+
+        # Rule-chain RPCs may only assert an output when local sensors also
+        # indicate an alarm. Dashboard controls use distinct manual RPC names.
+        if not is_manual and value > 0 and not self.sensor_alarm_active():
+            print(f"[CoreIOT RPC] Ignored automatic {method}({params}): local sensors are safe.")
+            return {}
+        if not is_manual:
+            with self.telemetry_lock:
+                current = self.latest_telemetry.get(key, 0)
+            if (int(current or 0) > 0) == (value > 0):
+                return {}
+        return {key: value}
+
     def on_mqtt_message(self, client, userdata, msg):
         """Process RPC control messages dispatched from CoreIOT RuleChain or Dashboard."""
         try:
@@ -277,13 +358,18 @@ class LocalHardwareGateway:
                 params = data_obj.get("params")
                 print(f"\n[CoreIOT Gateway RPC] Cloud Command: {method}({params}) [Device: {target_dev}, ID: {req_id}]")
 
-                local_cmd = {}
-                if method in ("setServo", "servo"):
-                    local_cmd["servo"] = int(params)
-                elif method in ("setBuzzer", "buzzer"):
-                    local_cmd["buzzer"] = 1 if params in (True, 1, "1", "true") else 0
-                elif method in ("setLed", "led"):
-                    local_cmd["led"] = 1 if params in (True, 1, "1", "true") else 0
+                if method in ("getAlarmOverride", "getBuzzer", "getLed"):
+                    state_key = {"getAlarmOverride": "alarm_override", "getBuzzer": "buzzer", "getLed": "led"}[method]
+                    state = self.rpc_state(method)
+                    if req_id is not None and target_dev:
+                        client.publish(GATEWAY_RPC_TOPIC, json.dumps({
+                            "device": target_dev,
+                            "id": req_id,
+                            "data": {state_key: state},
+                        }))
+                    return
+
+                local_cmd = self.rpc_command(method, params)
 
                 if local_cmd:
                     self.command_queue.put(local_cmd)
@@ -308,12 +394,13 @@ class LocalHardwareGateway:
                 print(f"\n[CoreIOT Device RPC] Cloud Command: {method}({params}) [ReqID: {req_id}]")
 
                 local_cmd = {}
-                if method in ("setServo", "servo"):
-                    local_cmd["servo"] = int(params)
-                elif method in ("setBuzzer", "buzzer"):
-                    local_cmd["buzzer"] = 1 if params in (True, 1, "1", "true") else 0
-                elif method in ("setLed", "led"):
-                    local_cmd["led"] = 1 if params in (True, 1, "1", "true") else 0
+                if method in ("getAlarmOverride", "getBuzzer", "getLed"):
+                    state_key = {"getAlarmOverride": "alarm_override", "getBuzzer": "buzzer", "getLed": "led"}[method]
+                    state = self.rpc_state(method)
+                    resp_topic = f"v1/devices/me/rpc/response/{req_id}"
+                    client.publish(resp_topic, json.dumps({state_key: state}))
+                    return
+                local_cmd = self.rpc_command(method, params)
 
                 if local_cmd:
                     self.command_queue.put(local_cmd)
@@ -336,6 +423,16 @@ class LocalHardwareGateway:
                 with self.telemetry_lock:
                     for k, v in cmd.items():
                         self.latest_telemetry[k] = v
+                    if "alarm_override" in cmd:
+                        sensor_alarm = self.local_alarm_active
+                        alarm_outputs = bool(cmd["alarm_override"]) or sensor_alarm
+                        self.latest_telemetry["buzzer"] = int(alarm_outputs)
+                        self.latest_telemetry["led"] = int(alarm_outputs)
+                        self.latest_telemetry["servo"] = 180 if alarm_outputs else 0
+                    elif self.latest_telemetry["alarm_override"]:
+                        self.latest_telemetry["buzzer"] = 1
+                        self.latest_telemetry["led"] = 1
+                        self.latest_telemetry["servo"] = 180
 
                 self.command_queue.task_done()
             except queue.Empty:
@@ -357,12 +454,13 @@ class LocalHardwareGateway:
                     unsynced = self.buffer_repo.fetch_unsynced(limit=25)
                     synced_ids = []
                     for rec_id, payload_str in unsynced:
-                        info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
                         if self.use_gateway_api:
                             rec_data = json.loads(payload_str)
                             gw_dev = "YOLOUNO_FIRE_NODE_01" if self.device_name == "FireAlarm_Gateway" else self.device_name
                             gw_msg = {gw_dev: [{"ts": int(time.time() * 1000), "values": rec_data}]}
-                            self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
+                            info = self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
+                        else:
+                            info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
 
                         if info.rc == mqtt.MQTT_ERR_SUCCESS:
                             synced_ids.append(rec_id)
@@ -446,8 +544,13 @@ class LocalHardwareGateway:
 
                         now_ts = time.time()
 
+                        sensor_alarm, alarm_changed = self.update_sensor_alarm_state(payload)
                         with self.telemetry_lock:
                             self.latest_telemetry.update(payload)
+                            if alarm_changed and not self.latest_telemetry["alarm_override"]:
+                                self.latest_telemetry["buzzer"] = int(sensor_alarm)
+                                self.latest_telemetry["led"] = int(sensor_alarm)
+                                self.latest_telemetry["servo"] = 180 if sensor_alarm else 0
                             self.latest_telemetry["last_seen"] = int(now_ts)
                             cloud_ready = self.latest_telemetry["cloud_connected"]
 
@@ -458,13 +561,12 @@ class LocalHardwareGateway:
 
                         # Publish to Cloud if connected
                         if cloud_ready:
-                            # 1. Publish to device telemetry topic (guarantees Dashboard and RuleChain updates)
-                            self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
-                            # 2. Also publish to Gateway topic if enabled
                             if self.use_gateway_api:
                                 gw_dev = "YOLOUNO_FIRE_NODE_01" if self.device_name == "FireAlarm_Gateway" else self.device_name
                                 gw_msg = {gw_dev: [{"ts": int(now_ts * 1000), "values": payload}]}
                                 self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
+                            else:
+                                self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
 
                     except Exception as parse_err:
                         print(f"[Gateway Processing Error] {parse_err}")
@@ -494,6 +596,7 @@ def main():
     parser.add_argument("--token", default=ACCESS_TOKEN, help="Device Access Token")
     parser.add_argument("--device-name", default=DEFAULT_DEVICE_NAME, help="Device/Gateway name in ThingsBoard")
     parser.add_argument("--device-api", action="store_true", help="Fallback to legacy Device API (v1/devices/me/telemetry)")
+    parser.add_argument("--gateway-api", action="store_true", help="Send telemetry for child device YOLOUNO_FIRE_NODE_01 using the ThingsBoard Gateway API")
     args = parser.parse_args()
 
     gw = LocalHardwareGateway(
@@ -503,7 +606,7 @@ def main():
         broker=args.broker,
         token=args.token,
         device_name=args.device_name,
-        use_gateway_api=not args.device_api
+        use_gateway_api=args.gateway_api and not args.device_api
     )
     gw.run()
 

@@ -51,13 +51,13 @@ def build_rule_chain_definition(
 
     # 1. TBEL & JS scripts
     switch_tbel = (
-        "var SMOKE_WARN = 35.0;\n"
-        "var SMOKE_CRIT = 60.0;\n\n"
+        "var SMOKE_WARN = 1800.0;\n"
+        "var SMOKE_CRIT = 2000.0;\n\n"
         "var smoke = (msg.smoke != null) ? Double.parseDouble(String.valueOf(msg.smoke)) : 0.0;\n"
         "var flame = (msg.flame != null) ? Integer.parseInt(String.valueOf(msg.flame)) : 0;\n"
         "var isAnomaly = (msg.is_anomaly != null) ? Integer.parseInt(String.valueOf(msg.is_anomaly)) : 0;\n"
         "var anomalyScore = (msg.anomaly_score != null) ? Double.parseDouble(String.valueOf(msg.anomaly_score)) : 0.0;\n\n"
-        "if (flame == 1 || smoke > SMOKE_CRIT || (isAnomaly == 1 && anomalyScore >= 0.80)) {\n"
+        "if (flame == 1 || smoke > SMOKE_CRIT) {\n"
         "    return ['Critical'];\n"
         "} else if (smoke >= SMOKE_WARN || isAnomaly == 1) {\n"
         "    return ['Warning'];\n"
@@ -67,13 +67,13 @@ def build_rule_chain_definition(
     )
 
     switch_js = (
-        "var SMOKE_WARN = 35.0;\n"
-        "var SMOKE_CRIT = 60.0;\n\n"
+        "var SMOKE_WARN = 1800.0;\n"
+        "var SMOKE_CRIT = 2000.0;\n\n"
         "var smoke = Number(msg.smoke || 0);\n"
         "var flame = Number(msg.flame || 0);\n"
         "var isAnomaly = Number(msg.is_anomaly || 0);\n"
         "var anomalyScore = Number(msg.anomaly_score || 0);\n\n"
-        "if (flame === 1 || smoke > SMOKE_CRIT || (isAnomaly === 1 && anomalyScore >= 0.80)) {\n"
+        "if (flame === 1 || smoke > SMOKE_CRIT) {\n"
         "    return ['Critical'];\n"
         "} else if (smoke >= SMOKE_WARN || isAnomaly === 1) {\n"
         "    return ['Warning'];\n"
@@ -408,15 +408,16 @@ def build_rule_chain_definition(
     connections = [
         # From Switch (0)
         {"fromIndex": 0, "toIndex": 1, "type": "Critical"},
-        {"fromIndex": 0, "toIndex": 5, "type": "Critical"},
-        {"fromIndex": 0, "toIndex": 7, "type": "Critical"},
-        {"fromIndex": 0, "toIndex": 9, "type": "Critical"},
         {"fromIndex": 0, "toIndex": 2, "type": "Warning"},
+        {"fromIndex": 0, "toIndex": 3, "type": "Warning"},
         {"fromIndex": 0, "toIndex": 3, "type": "Safe"},
         {"fromIndex": 0, "toIndex": 4, "type": "Safe"},
 
         # Critical Alarm -> Telegram
         {"fromIndex": 1, "toIndex": 17, "type": "Created"},
+        {"fromIndex": 1, "toIndex": 5, "type": "Created"},
+        {"fromIndex": 1, "toIndex": 7, "type": "Created"},
+        {"fromIndex": 1, "toIndex": 9, "type": "Created"},
         {"fromIndex": 17, "toIndex": 18, "type": "Success"},
 
         # Critical RPCs

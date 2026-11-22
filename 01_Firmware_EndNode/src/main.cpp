@@ -26,8 +26,8 @@ constexpr uint8_t DHT_TYPE = DHT11;
 constexpr int MQ2_ALARM_THRESHOLD = 1800;
 constexpr int MQ2_CLEAR_THRESHOLD =
     1650; // Hysteresis prevents rapid state changes.
-constexpr float TEMP_ALARM_THRESHOLD_C = 30.0f;
-constexpr float TEMP_CLEAR_THRESHOLD_C = 29.0f;
+constexpr float TEMP_ALARM_THRESHOLD_C = 35.0f;
+constexpr float TEMP_CLEAR_THRESHOLD_C = 34.0f;
 constexpr uint32_t SENSOR_SAMPLE_INTERVAL_MS = 100;
 constexpr uint32_t SERIAL_REPORT_INTERVAL_MS = 500;
 constexpr uint32_t DHT_SAMPLE_INTERVAL_MS = 2000;
@@ -38,11 +38,28 @@ DHT dht(DHT_PIN, DHT_TYPE);
 bool showingSafe = true;
 bool mq2AlarmActive = false;
 bool temperatureAlarmActive = false;
+bool masterAlarmOverride = false;
 float temperatureC = NAN;
 float humidityPercent = NAN;
 uint32_t lastSensorSample = 0;
 uint32_t lastSerialReport = 0;
 uint32_t lastDhtRead = 0;
+
+bool sensorAlarmActive() {
+  return mq2AlarmActive || temperatureAlarmActive ||
+         digitalRead(FLAME_PIN) == LOW;
+}
+
+void applyActuatorOutputs(bool alarmActive) {
+  const bool forceAlarm = alarmActive || masterAlarmOverride;
+  digitalWrite(LED_PIN, forceAlarm ? HIGH : LOW);
+  if (forceAlarm) {
+    tone(BUZZER_PIN, 500);
+  } else {
+    noTone(BUZZER_PIN);
+  }
+  doorServo.write(forceAlarm ? SERVO_CLOSED_ANGLE : SERVO_OPEN_ANGLE);
+}
 
 void drawSensorReading(bool safe, int mq2Value, bool flameDetected,
                        float temperature, float humidity) {
@@ -67,29 +84,24 @@ void drawSensorReading(bool safe, int mq2Value, bool flameDetected,
 
 void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
                 float humidity) {
-  const uint16_t background = safe ? ILI9341_DARKGREEN : ILI9341_RED;
+  const bool displaySafe = safe && !masterAlarmOverride;
+  const uint16_t background = displaySafe ? ILI9341_DARKGREEN : ILI9341_RED;
 
   tft.fillScreen(background);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextWrap(false);
 
-  const char *title = safe ? "HE THONG AN TOAN" : "CANH BAO CHAY!";
-  tft.setTextSize(safe ? 2 : 3);
+  const char *title = displaySafe ? "HE THONG AN TOAN" : "CANH BAO CHAY!";
+  tft.setTextSize(displaySafe ? 2 : 3);
   int16_t x1, y1;
   uint16_t textWidth, textHeight;
   tft.getTextBounds(title, 0, 0, &x1, &y1, &textWidth, &textHeight);
-  tft.setCursor((tft.width() - textWidth) / 2 - x1, safe ? 55 : 75);
+  tft.setCursor((tft.width() - textWidth) / 2 - x1, displaySafe ? 55 : 75);
   tft.print(title);
 
-  drawSensorReading(safe, mq2Value, flameDetected, temperature, humidity);
-
-  digitalWrite(LED_PIN, safe ? LOW : HIGH);
-  if (safe) {
-    noTone(BUZZER_PIN);
-  } else {
-    tone(BUZZER_PIN, 500);
-  }
-  doorServo.write(safe ? SERVO_OPEN_ANGLE : SERVO_CLOSED_ANGLE);
+  drawSensorReading(displaySafe, mq2Value, flameDetected, temperature,
+                    humidity);
+  applyActuatorOutputs(!safe);
 
   Serial.println(safe ? F("[AN TOAN] Servo mo cua")
                       : F("[CANH BAO CHAY] Servo dong cua"));
@@ -101,6 +113,22 @@ uint32_t manualOverrideUntil = 0;
 
 void handleCommand(const char *cmd) {
   manualOverrideUntil = millis() + 5000;
+
+  const char *pOverride = strstr(cmd, "alarm_override");
+  if (pOverride) {
+    const char *colon = strchr(pOverride, ':');
+    if (colon) {
+      masterAlarmOverride = atoi(colon + 1) == 1 || strstr(colon, "true");
+      const int mq2Value = analogRead(MQ2_PIN);
+      const bool flameDetected = digitalRead(FLAME_PIN) == LOW;
+      showingSafe = !sensorAlarmActive();
+      showStatus(showingSafe, mq2Value, flameDetected, temperatureC,
+                 humidityPercent);
+      Serial.println(masterAlarmOverride
+                         ? F("[ACK] Master override ON: all actuators forced")
+                         : F("[ACK] Master override OFF: automatic mode"));
+    }
+  }
 
   // 1. Servo command (handles {"servo": 90} or {"method": "setServo", "params":
   // 90})
@@ -153,6 +181,10 @@ void handleCommand(const char *cmd) {
         Serial.println(F("[ACK] LED TURNED OFF"));
       }
     }
+  }
+
+  if (masterAlarmOverride) {
+    applyActuatorOutputs(true);
   }
 }
 

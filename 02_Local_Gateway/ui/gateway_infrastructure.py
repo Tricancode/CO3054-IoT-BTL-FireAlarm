@@ -400,13 +400,13 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                     <div class="chart-stage">
                         <div class="metric-value">
                             <span id="val-smoke">--</span>
-                            <span class="metric-unit">ppm</span>
+                            <span class="metric-unit">ADC</span>
                         </div>
                         <div class="progress-bar-bg">
                             <div id="bar-smoke" class="progress-bar-fill"></div>
                         </div>
                     </div>
-                    <div class="chart-notes">Threshold: Normal &lt; 35.0 ppm | Warning 35-60 ppm | Alarm &gt; 60 ppm</div>
+                    <div class="chart-notes">MQ-2 ADC: Normal &lt; 1800 | Warning 1800-2000 | Critical &gt; 2000</div>
                 </div>
             </div>
 
@@ -578,11 +578,11 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                 if (data.smoke !== undefined) {
                     const smokeVal = Number(data.smoke).toFixed(1);
                     document.getElementById('val-smoke').innerText = smokeVal;
-                    const smokePercent = Math.min(100, Math.max(0, (smokeVal / 100) * 100));
+                    const smokePercent = Math.min(100, Math.max(0, (smokeVal / 4095) * 100));
                     const fill = document.getElementById('bar-smoke');
                     fill.style.width = smokePercent + '%';
-                    if (smokeVal > 60) fill.style.backgroundColor = '#c0392b';
-                    else if (smokeVal > 35) fill.style.backgroundColor = '#d35400';
+                    if (smokeVal > 2000) fill.style.backgroundColor = '#c0392b';
+                    else if (smokeVal >= 1800) fill.style.backgroundColor = '#d35400';
                     else fill.style.backgroundColor = '#27ae60';
                 }
 

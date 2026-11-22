@@ -17,8 +17,8 @@
         "configurationVersion": 0,
         "configuration": {
           "scriptLang": "TBEL",
-          "tbelScript": "var SMOKE_WARN = 35.0;\nvar SMOKE_CRIT = 60.0;\n\nvar smoke = (msg.smoke != null) ? Double.parseDouble(String.valueOf(msg.smoke)) : 0.0;\nvar flame = (msg.flame != null) ? Integer.parseInt(String.valueOf(msg.flame)) : 0;\nvar isAnomaly = (msg.is_anomaly != null) ? Integer.parseInt(String.valueOf(msg.is_anomaly)) : 0;\nvar anomalyScore = (msg.anomaly_score != null) ? Double.parseDouble(String.valueOf(msg.anomaly_score)) : 0.0;\n\nif (flame == 1 || smoke > SMOKE_CRIT || (isAnomaly == 1 && anomalyScore >= 0.80)) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly == 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}",
-          "jsScript": "var SMOKE_WARN = 35.0;\nvar SMOKE_CRIT = 60.0;\n\nvar smoke = Number(msg.smoke || 0);\nvar flame = Number(msg.flame || 0);\nvar isAnomaly = Number(msg.is_anomaly || 0);\nvar anomalyScore = Number(msg.anomaly_score || 0);\n\nif (flame === 1 || smoke > SMOKE_CRIT || (isAnomaly === 1 && anomalyScore >= 0.80)) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly === 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}"
+          "tbelScript": "var SMOKE_WARN = 1800.0;\nvar SMOKE_CRIT = 2000.0;\n\nvar smoke = (msg.smoke != null) ? Double.parseDouble(String.valueOf(msg.smoke)) : 0.0;\nvar flame = (msg.flame != null) ? Integer.parseInt(String.valueOf(msg.flame)) : 0;\nvar isAnomaly = (msg.is_anomaly != null) ? Integer.parseInt(String.valueOf(msg.is_anomaly)) : 0;\n\nif (flame == 1 || smoke > SMOKE_CRIT) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly == 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}",
+          "jsScript": "var SMOKE_WARN = 1800.0;\nvar SMOKE_CRIT = 2000.0;\n\nvar smoke = Number(msg.smoke || 0);\nvar flame = Number(msg.flame || 0);\nvar isAnomaly = Number(msg.is_anomaly || 0);\n\nif (flame === 1 || smoke > SMOKE_CRIT) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly === 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}"
         },
         "additionalInfo": {
           "layoutX": 160,
@@ -121,12 +121,12 @@
       },
       {
         "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setBuzzer(1)",
+        "name": "Transform RPC setBuzzer(0)",
         "configurationVersion": 0,
         "configuration": {
           "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 1 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 1 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
+          "tbelScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
+          "jsScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
         },
         "additionalInfo": {
           "layoutX": 480,
@@ -135,7 +135,7 @@
       },
       {
         "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setBuzzer ON",
+        "name": "RPC setBuzzer OFF",
         "configurationVersion": 0,
         "configuration": {
           "timeoutInSeconds": 5
@@ -337,23 +337,28 @@
         "type": "Critical"
       },
       {
-        "fromIndex": 0,
+        "fromIndex": 1,
         "toIndex": 5,
-        "type": "Critical"
+        "type": "Created"
       },
       {
-        "fromIndex": 0,
+        "fromIndex": 1,
         "toIndex": 7,
-        "type": "Critical"
+        "type": "Created"
       },
       {
-        "fromIndex": 0,
+        "fromIndex": 1,
         "toIndex": 9,
-        "type": "Critical"
+        "type": "Created"
       },
       {
         "fromIndex": 0,
         "toIndex": 2,
+        "type": "Warning"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
         "type": "Warning"
       },
       {

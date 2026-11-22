@@ -38,7 +38,7 @@
           "color": "rgba(0, 0, 0, 0.87)",
           "padding": "8px",
           "settings": {
-            "maxValue": 1000,
+            "maxValue": 4095,
             "startAngle": 45,
             "ticksAngle": 270,
             "showBorder": true,
@@ -47,17 +47,17 @@
             "highlights": [
               {
                 "from": 0,
-                "to": 300,
+                "to": 1800,
                 "color": "#4caf50"
               },
               {
-                "from": 300,
-                "to": 600,
+                "from": 1800,
+                "to": 2000,
                 "color": "#ff9800"
               },
               {
-                "from": 600,
-                "to": 1000,
+                "from": 2000,
+                "to": 4095,
                 "color": "#f44336"
               }
             ],
@@ -109,7 +109,7 @@
             "colorValueBoxBackground": "#babab2",
             "colorValueBoxShadow": "rgba(0,0,0,1)"
           },
-          "title": "Smoke Density (PPM)",
+          "title": "MQ-2 Raw ADC",
           "dropShadow": true,
           "enableFullscreen": true,
           "titleStyle": {
@@ -122,7 +122,7 @@
           "decimals": 0,
           "noDataDisplayMessage": "",
           "configMode": "basic",
-          "units": "ppm"
+          "units": "ADC"
         }
       },
       "a1111111-0000-0000-0000-000000000002": {
@@ -417,7 +417,7 @@
                 {
                   "name": "smoke",
                   "type": "timeseries",
-                  "label": "Smoke (ppm)",
+                  "label": "MQ-2 ADC",
                   "color": "#f44336",
                   "settings": {
                     "yAxisId": "default",
@@ -785,15 +785,15 @@
           "settings": {
             "requestTimeout": 1000,
             "initialValue": false,
-            "getValueMethod": "getServo",
-            "setValueMethod": "setServo",
+            "getValueMethod": "getAlarmOverride",
+            "setValueMethod": "setAlarmOverride",
             "title": "Round switch",
             "retrieveValueMethod": "rpc",
-            "valueKey": "value",
-            "parseValueFunction": "return data ? true : false;",
-            "convertValueFunction": "return value ? 90 : 0;"
+            "valueKey": "alarm_override",
+            "parseValueFunction": "return data && (data.alarm_override === true || data.alarm_override === 1);",
+            "convertValueFunction": "return value ? true : false;"
           },
-          "title": "Fire Door & Suppression Servo",
+          "title": "Master Alarm Override (ON=Force, OFF=Auto)",
           "dropShadow": true,
           "enableFullscreen": false,
           "widgetStyle": {},
@@ -828,9 +828,12 @@
             "requestTimeout": 1000,
             "initialValue": false,
             "getValueMethod": "getBuzzer",
-            "setValueMethod": "setBuzzer",
+            "setValueMethod": "manualSetBuzzer",
             "showOnOffLabels": true,
-            "title": "Switch control"
+            "title": "Switch control",
+            "valueKey": "buzzer",
+            "parseValueFunction": "return data && (data.buzzer === true || data.buzzer === 1);",
+            "convertValueFunction": "return value ? 1 : 0;"
           },
           "title": "Alarm Siren Buzzer",
           "dropShadow": true,
@@ -867,9 +870,12 @@
             "requestTimeout": 1000,
             "initialValue": false,
             "getValueMethod": "getLed",
-            "setValueMethod": "setLed",
+            "setValueMethod": "manualSetLed",
             "showOnOffLabels": true,
-            "title": "Switch control"
+            "title": "Switch control",
+            "valueKey": "led",
+            "parseValueFunction": "return data && (data.led === true || data.led === 1);",
+            "convertValueFunction": "return value ? 1 : 0;"
           },
           "title": "Strobe LED Beacon",
           "dropShadow": true,
@@ -965,7 +971,7 @@
           "type": "singleEntity",
           "singleEntity": {
             "entityType": "DEVICE",
-            "id": "d490d710-e55c-11f1-b536-af039a103c55"
+            "id": "43a2a450-e65f-11f1-886b-354f9e0ad88e"
           },
           "resolveMultiple": false
         }

@@ -191,16 +191,16 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
 
     # --- 1. Smoke Radial Gauge ---
     smoke_cfg = copy.deepcopy(templates.get("radial_gauge", {}))
-    smoke_cfg["title"] = "Smoke Density (PPM)"
+    smoke_cfg["title"] = "MQ-2 Raw ADC"
     smoke_cfg["showTitle"] = True
-    smoke_cfg["units"] = "ppm"
+    smoke_cfg["units"] = "ADC"
     smoke_cfg.setdefault("settings", {})
     smoke_cfg["settings"]["minValue"] = 0
-    smoke_cfg["settings"]["maxValue"] = 1000
+    smoke_cfg["settings"]["maxValue"] = 4095
     smoke_cfg["settings"]["highlights"] = [
-        {"from": 0, "to": 300, "color": "#4caf50"},
-        {"from": 300, "to": 600, "color": "#ff9800"},
-        {"from": 600, "to": 1000, "color": "#f44336"}
+        {"from": 0, "to": 1800, "color": "#4caf50"},
+        {"from": 1800, "to": 2000, "color": "#ff9800"},
+        {"from": 2000, "to": 4095, "color": "#f44336"}
     ]
     smoke_cfg["datasources"] = [
         {
@@ -281,7 +281,7 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
                 {
                     "name": "smoke",
                     "type": "timeseries",
-                    "label": "Smoke (ppm)",
+                    "label": "MQ-2 ADC",
                     "color": "#f44336",
                     "settings": copy.deepcopy(base_key_settings),
                     "_hash": 0.31
@@ -370,16 +370,17 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
 
     # --- 6. Fire Door Servo Switch ---
     servo_cfg = copy.deepcopy(templates.get("round_switch", {}))
-    servo_cfg["title"] = "Fire Door & Suppression Servo"
+    servo_cfg["title"] = "Master Alarm Override (ON=Force, OFF=Auto)"
     servo_cfg["showTitle"] = True
     servo_cfg["targetDeviceAliasIds"] = [alias_id]
     servo_cfg.setdefault("settings", {})
     servo_cfg["settings"]["requestTimeout"] = 1000
     servo_cfg["settings"]["initialValue"] = False
-    servo_cfg["settings"]["getValueMethod"] = "getServo"
-    servo_cfg["settings"]["setValueMethod"] = "setServo"
-    servo_cfg["settings"]["parseValueFunction"] = "return data ? true : false;"
-    servo_cfg["settings"]["convertValueFunction"] = "return value ? 90 : 0;"
+    servo_cfg["settings"]["getValueMethod"] = "getAlarmOverride"
+    servo_cfg["settings"]["setValueMethod"] = "setAlarmOverride"
+    servo_cfg["settings"]["valueKey"] = "alarm_override"
+    servo_cfg["settings"]["parseValueFunction"] = "return data && (data.alarm_override === true || data.alarm_override === 1);"
+    servo_cfg["settings"]["convertValueFunction"] = "return value ? true : false;"
 
     # --- 7. Alarm Buzzer Switch ---
     buzzer_cfg = copy.deepcopy(templates.get("switch_control", {}))
@@ -390,7 +391,10 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
     buzzer_cfg["settings"]["requestTimeout"] = 1000
     buzzer_cfg["settings"]["initialValue"] = False
     buzzer_cfg["settings"]["getValueMethod"] = "getBuzzer"
-    buzzer_cfg["settings"]["setValueMethod"] = "setBuzzer"
+    buzzer_cfg["settings"]["setValueMethod"] = "manualSetBuzzer"
+    buzzer_cfg["settings"]["valueKey"] = "buzzer"
+    buzzer_cfg["settings"]["parseValueFunction"] = "return data && (data.buzzer === true || data.buzzer === 1);"
+    buzzer_cfg["settings"]["convertValueFunction"] = "return value ? 1 : 0;"
 
     # --- 8. Strobe LED Switch ---
     led_cfg = copy.deepcopy(templates.get("switch_control", {}))
@@ -401,7 +405,10 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
     led_cfg["settings"]["requestTimeout"] = 1000
     led_cfg["settings"]["initialValue"] = False
     led_cfg["settings"]["getValueMethod"] = "getLed"
-    led_cfg["settings"]["setValueMethod"] = "setLed"
+    led_cfg["settings"]["setValueMethod"] = "manualSetLed"
+    led_cfg["settings"]["valueKey"] = "led"
+    led_cfg["settings"]["parseValueFunction"] = "return data && (data.led === true || data.led === 1);"
+    led_cfg["settings"]["convertValueFunction"] = "return value ? 1 : 0;"
 
     # Widgets definition
     widgets = {

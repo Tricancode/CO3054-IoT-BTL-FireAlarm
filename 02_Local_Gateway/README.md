@@ -58,7 +58,7 @@ Hệ thống được thiết kế theo mô hình lai (Hybrid Multi-Tier Archite
 ### 2.2. Phân rã chức năng hệ thống
 
 Hệ thống báo cháy được phân rã thành các luồng xử lý nghiệp vụ chính:
-1. **Thu thập dữ liệu môi trường (Sensing):** Đọc định kỳ nồng độ khói (`smoke` theo ppm) và trạng thái bức xạ quang học của ngọn lửa (`flame` theo bit logic 0/1).
+1. **Thu thập dữ liệu môi trường (Sensing):** Đọc định kỳ giá trị ADC thô 12-bit của cảm biến MQ-2 (`smoke`, 0-4095; không phải ppm) và trạng thái bức xạ quang học của ngọn lửa (`flame` theo bit logic 0/1).
 2. **Xử lý sơ bộ và đệm dữ liệu tại biên (Edge Ingestion & Buffering):** Đóng gói khung truyền JSON, kiểm tra tính hợp lệ của dữ liệu, ghi lập tức vào cơ sở dữ liệu đệm SQLite nội bộ để chống mất dữ liệu khi mất kết nối mạng.
 3. **Đồng bộ hóa đám mây (Cloud Synchronization):** Kết nối liên tục qua MQTT Client; khi đường truyền khả dụng, luồng nền tự động đẩy dữ liệu lên CoreIOT; khi mạng phục hồi sau sự cố, dữ liệu tồn đọng trong đệm được đồng bộ theo cơ chế FIFO (First-In, First-Out).
 4. **Phân phối lệnh điều khiển (Actuator Dispatching):** Tiếp nhận lệnh thay đổi trạng thái từ hai nguồn: Lệnh RPC từ đám mây (CoreIOT RuleChain/Dashboard) hoặc Lệnh cưỡng bức từ giao diện Web trạm cục bộ (Local Override), đưa vào hàng đợi không nghẽn và phát xuống vi điều khiển qua UART/UDP.
@@ -76,7 +76,7 @@ Sự phân định ranh giới chức năng giữa trạm biên và đám mây �
 
 #### B. Phân lớp tính năng Lớp Đám Mây CoreIOT (ThingsBoard Platform)
 - **Lưu trữ chuỗi thời gian tập trung (Centralized Timeseries Storage):** Ghi nhận toàn bộ diễn tiến nồng độ khói và bức xạ lửa trong suốt chu kỳ hoạt động của hệ thống, phục vụ công tác điều tra nguyên nhân cháy và phân tích độ tin cậy của cảm biến.
-- **Bộ máy quy tắc thông minh (RuleChain Processing):** Cấu hình các khối xử lý logic nghiệp vụ: khi `smoke > 60.0 ppm` hoặc `flame == 1`, RuleChain tự động khởi tạo lệnh RPC `setServo(90)` để đóng cửa thoát hiểm và gửi tin nhắn cảnh báo notification (SMS, Email, Telegram) đến ban quản lý tòa nhà.
+- **Bộ máy quy tắc thông minh (RuleChain Processing):** Dữ liệu `smoke` gửi lên là ADC thô 0-4095; ngưỡng tương ứng với firmware là `smoke >= 1800` hoặc `flame == 1`. RuleChain cần được cấu hình theo cùng thang đo để tự khởi tạo lệnh RPC `setServo(90)` và gửi cảnh báo.
 - **Bảng điều khiển quản trị trung tâm (Enterprise Dashboard):** Giám sát đồng thời nhiều trạm Gateway phân tán trên cùng một giao diện bản đồ địa lý hoặc sơ đồ mặt bằng kiến trúc.
 
 ### 2.4. Bảng ánh xạ tính năng và yếu tố công nghệ (Criteria Mapping)

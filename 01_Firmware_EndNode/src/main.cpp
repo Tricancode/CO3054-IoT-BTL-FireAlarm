@@ -18,6 +18,10 @@ constexpr uint8_t BUZZER_PIN = 6; // D3
 constexpr uint8_t SERVO_PIN = 5;  // D2
 constexpr int SERVO_OPEN_ANGLE = 0;
 constexpr int SERVO_CLOSED_ANGLE = 180;
+// UI/gateway angles are logical angles on a 0-90 degree door scale. The
+// linkage currently moves about half as far as the servo shaft, so double
+// manual commands to get the intended physical door travel.
+constexpr int SERVO_COMMAND_SCALE = 2;
 constexpr uint8_t MQ2_PIN = 1;   // A0
 constexpr uint8_t FLAME_PIN = 9; // D6
 constexpr uint8_t DHT_PIN = 10;  // D7
@@ -138,10 +142,13 @@ void handleCommand(const char *cmd) {
   if (pServo) {
     const char *colon = strchr(pServo, ':');
     if (colon) {
-      int angle = atoi(colon + 1);
-      if (angle >= 0 && angle <= 180) {
-        doorServo.write(angle);
-        Serial.printf("[ACK] Servo set to %d deg\n", angle);
+      const int logicalAngle = atoi(colon + 1);
+      if (logicalAngle >= 0 && logicalAngle <= 180) {
+        const int physicalAngle = min(logicalAngle * SERVO_COMMAND_SCALE,
+                                      SERVO_CLOSED_ANGLE);
+        doorServo.write(physicalAngle);
+        Serial.printf("[ACK] Servo requested %d deg; physical target %d deg\n",
+                      logicalAngle, physicalAngle);
       }
     }
   }

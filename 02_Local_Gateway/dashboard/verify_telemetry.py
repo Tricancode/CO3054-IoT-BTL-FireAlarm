@@ -13,7 +13,13 @@ import json
 import time
 import logging
 import threading
+from pathlib import Path
 import paho.mqtt.client as mqtt
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from ui.isolation_detector import IsolationDetector
 
 # Logging Setup
 logging.basicConfig(
@@ -39,6 +45,7 @@ actuator_state = {
 
 published_count = 0
 publish_ack_event = threading.Event()
+anomaly_detector = IsolationDetector()
 
 
 def create_mqtt_client(client_id="FireAlarm_Gateway_Node"):
@@ -111,9 +118,10 @@ def on_message(client, userdata, msg):
 
 
 def generate_telemetry_sample(iteration: int) -> dict:
-    """Generates realistic sensor readings for testing."""
+    """Generate readings and score them with the same detector as the gateway."""
     flame_detected = 1 if iteration >= 3 else 0
-    smoke_ppm = 450.0 + (iteration * 25.5) if flame_detected else 45.0 + (iteration % 5)
+    # Match the firmware's raw 12-bit MQ-2 ADC scale and 1800 alarm threshold.
+    smoke_adc = 1900.0 + (iteration * 25.5) if flame_detected else 250.0 + (iteration * 10)
     temperature = 55.0 + (iteration * 2.1) if flame_detected else 24.5 + (iteration % 3)
 
     if flame_detected:
@@ -121,12 +129,16 @@ def generate_telemetry_sample(iteration: int) -> dict:
         actuator_state["buzzer"] = True
         actuator_state["led"] = True
 
+    is_anomaly, anomaly_score = anomaly_detector.update_and_predict(
+        smoke_adc, temperature, flame_detected
+    )
+
     return {
-        "smoke": round(smoke_ppm, 2),
+        "smoke": round(smoke_adc, 2),
         "flame": flame_detected,
         "temperature": round(temperature, 2),
-        "is_anomaly": 1 if flame_detected else 0,
-        "anomaly_score": 0.92 if flame_detected else 0.18,
+        "is_anomaly": is_anomaly,
+        "anomaly_score": anomaly_score,
         "servo": actuator_state["servo"],
         "buzzer": actuator_state["buzzer"],
         "led": actuator_state["led"]

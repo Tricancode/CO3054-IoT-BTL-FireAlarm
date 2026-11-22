@@ -27,12 +27,18 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+import socket
 from typing import Dict, List, Optional
 
 import paho.mqtt.client as mqtt
 
+def is_port_open(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex((host, port)) == 0
+
 # Defaults matched 100% with 02_Local_Gateway/hardware_gateway/LocalGateway.py
-DEFAULT_BROKER = os.getenv("COREIOT_BROKER", "app.coreiot.io")
+DEFAULT_BROKER = "127.0.0.1" if is_port_open("127.0.0.1", 1883) else os.getenv("COREIOT_BROKER", "app.coreiot.io")
 DEFAULT_PORT = int(os.getenv("COREIOT_PORT", "1883"))
 DEFAULT_TOKEN = os.getenv("COREIOT_TOKEN", "i2tchqq1390qcxhun4zr")
 

@@ -48,12 +48,24 @@ WEB_PORT = 5050         # Keen Dashboards Web UI port
 BROKER_ADDRESS = "app.coreiot.io"
 BROKER_PORT = 1883
 ACCESS_TOKEN = "i2tchqq1390qcxhun4zr"
+DEFAULT_DEVICE_NAME = "FireAlarm_Gateway"
+
+# Topics (Supports both ThingsBoard Gateway API and Device API)
 TELEMETRY_TOPIC = "v1/devices/me/telemetry"
 RPC_REQUEST_TOPIC = "v1/devices/me/rpc/request/+"
+GATEWAY_TELEMETRY_TOPIC = "v1/gateway/telemetry"
+GATEWAY_RPC_TOPIC = "v1/gateway/rpc"
 
 
 class LocalGatewaySimulation:
-    def __init__(self, broker: str = BROKER_ADDRESS, token: str = ACCESS_TOKEN, web_port: int = WEB_PORT):
+    def __init__(
+        self,
+        broker: str = BROKER_ADDRESS,
+        token: str = ACCESS_TOKEN,
+        web_port: int = WEB_PORT,
+        device_name: str = DEFAULT_DEVICE_NAME,
+        use_gateway_api: bool = True
+    ):
         # 1. Offline storage repository (SQLite WAL)
         self.db_path = Path("gateway_simulation_buffer.db")
         self.buffer_repo = OfflineBufferRepository(self.db_path)
@@ -64,6 +76,8 @@ class LocalGatewaySimulation:
         # 3. Broker and Token configuration
         self.broker = broker
         self.token = token
+        self.device_name = device_name
+        self.use_gateway_api = use_gateway_api
 
         # 4. Real-time telemetry snapshot
         self.detector = IsolationDetector()
@@ -112,8 +126,11 @@ class LocalGatewaySimulation:
             print(f"\n[CoreIOT Cloud] Connected successfully to {self.broker}")
             with self.telemetry_lock:
                 self.latest_telemetry["cloud_connected"] = True
+            if self.use_gateway_api:
+                client.subscribe(GATEWAY_RPC_TOPIC)
+                print(f"[CoreIOT Cloud] Subscribed to Gateway RPC topic: {GATEWAY_RPC_TOPIC}")
             client.subscribe(RPC_REQUEST_TOPIC)
-            print(f"[CoreIOT Cloud] Subscribed to RPC requests: {RPC_REQUEST_TOPIC}")
+            print(f"[CoreIOT Cloud] Subscribed to Device RPC topic: {RPC_REQUEST_TOPIC}")
         else:
             print(f"[CoreIOT Cloud] Connection failed with result code {rc}")
             with self.telemetry_lock:
@@ -127,26 +144,55 @@ class LocalGatewaySimulation:
     def on_mqtt_message(self, client, userdata, msg):
         """Process RPC control messages dispatched from CoreIOT RuleChain or Dashboard."""
         try:
-            req_id = msg.topic.split("/")[-1]
-            rpc_data = json.loads(msg.payload.decode("utf-8"))
-            method = rpc_data.get("method")
-            params = rpc_data.get("params")
-            print(f"\n[CoreIOT RPC] Cloud Command Received: {method}({params}) [ReqID: {req_id}]")
+            if msg.topic == GATEWAY_RPC_TOPIC:
+                rpc_data = json.loads(msg.payload.decode("utf-8"))
+                target_dev = rpc_data.get("device", self.device_name)
+                data_obj = rpc_data.get("data", {})
+                req_id = data_obj.get("id")
+                method = data_obj.get("method")
+                params = data_obj.get("params")
+                print(f"\n[CoreIOT Gateway RPC] Cloud Command: {method}({params}) [Device: {target_dev}, ID: {req_id}]")
 
-            local_cmd = {}
-            if method in ("setServo", "servo"):
-                local_cmd["servo"] = int(params)
-            elif method in ("setBuzzer", "buzzer"):
-                local_cmd["buzzer"] = 1 if params in (True, 1, "1", "true") else 0
-            elif method in ("setLed", "led"):
-                local_cmd["led"] = 1 if params in (True, 1, "1", "true") else 0
+                local_cmd = {}
+                if method in ("setServo", "servo"):
+                    local_cmd["servo"] = int(params)
+                elif method in ("setBuzzer", "buzzer"):
+                    local_cmd["buzzer"] = 1 if params in (True, 1, "1", "true") else 0
+                elif method in ("setLed", "led"):
+                    local_cmd["led"] = 1 if params in (True, 1, "1", "true") else 0
 
-            if local_cmd:
-                self.command_queue.put(local_cmd)
+                if local_cmd:
+                    self.command_queue.put(local_cmd)
 
-            # Publish ACK back to CoreIOT
-            resp_topic = f"v1/devices/me/rpc/response/{req_id}"
-            client.publish(resp_topic, json.dumps({"status": "SUCCESS", "applied": local_cmd}))
+                # Send Gateway RPC ACK back
+                resp_payload = {
+                    "device": target_dev,
+                    "id": req_id,
+                    "data": {"status": "SUCCESS", "applied": local_cmd}
+                }
+                client.publish(GATEWAY_RPC_TOPIC, json.dumps(resp_payload))
+
+            elif msg.topic.startswith("v1/devices/me/rpc/request/"):
+                req_id = msg.topic.split("/")[-1]
+                rpc_data = json.loads(msg.payload.decode("utf-8"))
+                method = rpc_data.get("method")
+                params = rpc_data.get("params")
+                print(f"\n[CoreIOT Device RPC] Cloud Command: {method}({params}) [ReqID: {req_id}]")
+
+                local_cmd = {}
+                if method in ("setServo", "servo"):
+                    local_cmd["servo"] = int(params)
+                elif method in ("setBuzzer", "buzzer"):
+                    local_cmd["buzzer"] = 1 if params in (True, 1, "1", "true") else 0
+                elif method in ("setLed", "led"):
+                    local_cmd["led"] = 1 if params in (True, 1, "1", "true") else 0
+
+                if local_cmd:
+                    self.command_queue.put(local_cmd)
+
+                # Publish ACK back to CoreIOT
+                resp_topic = f"v1/devices/me/rpc/response/{req_id}"
+                client.publish(resp_topic, json.dumps({"status": "SUCCESS", "applied": local_cmd}))
 
         except Exception as e:
             print(f"[CoreIOT RPC Error] Error decoding RPC command: {e}")
@@ -186,7 +232,13 @@ class LocalGatewaySimulation:
                     unsynced = self.buffer_repo.fetch_unsynced(limit=25)
                     synced_ids = []
                     for rec_id, payload_str in unsynced:
-                        info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
+                        if self.use_gateway_api:
+                            rec_data = json.loads(payload_str)
+                            gw_msg = {self.device_name: [rec_data]}
+                            info = self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
+                        else:
+                            info = self.mqtt_client.publish(TELEMETRY_TOPIC, payload_str, qos=1)
+
                         if info.rc == mqtt.MQTT_ERR_SUCCESS:
                             synced_ids.append(rec_id)
                         else:
@@ -263,7 +315,11 @@ class LocalGatewaySimulation:
 
                 # Direct telemetry forwarding if cloud connection is active
                 if cloud_ready:
-                    self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
+                    if self.use_gateway_api:
+                        gw_msg = {self.device_name: [payload]}
+                        self.mqtt_client.publish(GATEWAY_TELEMETRY_TOPIC, json.dumps(gw_msg), qos=1)
+                    else:
+                        self.mqtt_client.publish(TELEMETRY_TOPIC, json.dumps(payload), qos=1)
 
             except KeyboardInterrupt:
                 print("\n[Gateway] Shutting down Local Gateway...")
@@ -284,7 +340,15 @@ if __name__ == "__main__":
     parser.add_argument("--broker", default=BROKER_ADDRESS, help="MQTT Broker host")
     parser.add_argument("--token", default=ACCESS_TOKEN, help="Device Access Token")
     parser.add_argument("--web-port", type=int, default=WEB_PORT, help="Web Monitor port")
+    parser.add_argument("--device-name", default=DEFAULT_DEVICE_NAME, help="Device/Gateway name in ThingsBoard")
+    parser.add_argument("--device-api", action="store_true", help="Fallback to legacy Device API (v1/devices/me/telemetry)")
     args = parser.parse_args()
 
-    gateway = LocalGatewaySimulation(broker=args.broker, token=args.token, web_port=args.web_port)
+    gateway = LocalGatewaySimulation(
+        broker=args.broker,
+        token=args.token,
+        web_port=args.web_port,
+        device_name=args.device_name,
+        use_gateway_api=not args.device_api
+    )
     gateway.run()

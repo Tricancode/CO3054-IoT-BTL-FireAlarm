@@ -94,7 +94,8 @@ def get_or_create_device(token: str) -> str:
         payload = {
             "name": DEVICE_NAME,
             "type": "Gateway",
-            "label": "Fire Alarm Gateway Node"
+            "label": "Fire Alarm Gateway Node",
+            "additionalInfo": {"gateway": True, "description": "ThingsBoard IoT Gateway Node"}
         }
         logger.info(f"Creating device '{DEVICE_NAME}'...")
         create_res = requests.post(create_url, json=payload, headers=headers, timeout=10)

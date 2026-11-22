@@ -1,0 +1,3 @@
+trial,timestamp_utc,broker,smoke_ppm,temperature_c,flame,mqtt_ack_ms,first_rpc_ms,servo_rpc_ms,buzzer_rpc_ms,led_rpc_ms,all_3_rpc_ms,rpcs_received,status
+1,2026-11-22T04:41:37.043486+00:00,127.0.0.1:1883,85.5,62.0,1,1.58,88.01,88.01,88.5,88.35,88.5,3,PASS_ALL_3
+2,2026-11-22T04:41:39.632552+00:00,127.0.0.1:1883,85.5,62.0,1,2.39,113.02,113.26,113.02,113.43,113.43,3,PASS_ALL_3

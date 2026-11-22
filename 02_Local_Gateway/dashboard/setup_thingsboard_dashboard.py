@@ -33,25 +33,26 @@ DASHBOARD_TITLE = "Industrial Fire Alarm & Suppression System"
 DASHBOARD_FILE = Path(__file__).parent / "thingsboard_dashboard.json"
 
 
-def wait_for_thingsboard(timeout: int = 30, interval: int = 2) -> bool:
-    """Waits for the ThingsBoard REST service to become responsive."""
-    logger.info(f"Checking connectivity to ThingsBoard instance at {TB_HOST}...")
+def wait_for_thingsboard(timeout: int = 180, interval: int = 3) -> bool:
+    """Waits for the ThingsBoard REST service and Spring Security context to fully initialize."""
+    logger.info(f"Checking connectivity to ThingsBoard instance at {TB_HOST} (Timeout: {timeout}s)...")
     start = time.time()
-    url = f"{TB_HOST}/login"
+    login_url = f"{TB_HOST}/api/auth/login"
     
     while time.time() - start < timeout:
         try:
-            res = requests.get(url, timeout=5)
-            if res.status_code == 200:
-                logger.info("ThingsBoard service is reachable.")
+            # When Spring Boot is ready, POST /api/auth/login returns 401 or 200 (never 404 or ConnectionRefused)
+            res = requests.post(login_url, json={"username": "probe", "password": "probe"}, timeout=5)
+            if res.status_code in (200, 401):
+                logger.info("ThingsBoard REST API is fully initialized and reachable.")
                 return True
         except requests.RequestException:
             pass
-        logger.info(f"Waiting for ThingsBoard at {TB_HOST}... ({int(time.time() - start)}s elapsed)")
+        logger.info(f"Waiting for ThingsBoard container Spring Boot initialization... ({int(time.time() - start)}s elapsed)")
         time.sleep(interval)
     
-    logger.warning("ThingsBoard connection check timed out. Proceeding with provision attempt.")
-    return False
+    logger.error("ThingsBoard connection check timed out after %ds.", timeout)
+    raise TimeoutError(f"ThingsBoard at {TB_HOST} did not become ready within {timeout}s. Please check Docker logs.")
 
 
 def get_auth_token() -> str:

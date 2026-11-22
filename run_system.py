@@ -38,7 +38,8 @@ LOCAL_WEB_URL = f"http://localhost:{LOCAL_WEB_PORT}"
 TB_LOCAL_HOST = "127.0.0.1"
 TB_LOCAL_HTTP_PORT = 9090
 TB_LOCAL_MQTT_PORT = 1883
-TB_DEFAULT_LOCAL_URL = f"http://localhost:{TB_LOCAL_HTTP_PORT}"
+TB_DASHBOARD_ID = "47c220e0-e55d-11f1-b536-af039a103c55"
+TB_DEFAULT_LOCAL_URL = f"http://localhost:{TB_LOCAL_HTTP_PORT}/dashboards/{TB_DASHBOARD_ID}"
 
 STARTUP_TIMEOUT = 12.0
 
@@ -223,12 +224,12 @@ def main():
     tb_local_active = is_local_thingsboard_active()
     if args.broker is not None:
         broker = args.broker
-    elif tb_local_active:
-        broker = "127.0.0.1"
-        print("[Hardware Info] Local ThingsBoard Docker detected (1883/9090). Prioritizing broker: 127.0.0.1")
     else:
-        broker = "app.coreiot.io"
-        print("[Hardware Info] Local ThingsBoard not detected. Defaulting broker: app.coreiot.io")
+        broker = "127.0.0.1"
+        if tb_local_active:
+            print("[Hardware Info] Local ThingsBoard Docker detected and active (1883/9090).")
+        else:
+            print("[Hardware Info] Local ThingsBoard container starting up. Retaining 127.0.0.1.")
 
     # 3. Resolve Dashboard URLs
     if args.tb_url:

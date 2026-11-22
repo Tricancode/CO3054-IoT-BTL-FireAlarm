@@ -18,86 +18,102 @@
   * Đèn LED cảnh báo: **Warning LED** (Chân D8 - GPIO 17).
   * Màn hình hiển thị: **TFT SPI ILI9341 320x240**.
 
-### B. Phần mềm & Dịch vụ
-* **Python 3.10+**: Đã cài các phụ thuộc:
-  ```bash
-  pip install pyserial paho-mqtt requests scikit-learn numpy
-  ```
-* **ThingsBoard Container (Khuyên dùng)**: Chạy trên Docker cổng `9090` (HTTP) và `1883` (MQTT).
-  * Nếu không bật ThingsBoard Docker, hệ thống tự động fallback lên Cloud Broker `app.coreiot.io`.
+### B. Cài đặt thư viện Python (Chạy 1 lần trên máy mới)
+Mở Terminal tại thư mục dự án và cài các thư viện phụ thuộc:
+```powershell
+pip install pyserial paho-mqtt requests scikit-learn numpy
+```
 
 ---
 
-## 2. Cách Khởi Chạy Toàn Bộ Hệ Thống (1 Lệnh Duy Nhất)
+## 2. KỊCH BẢN A: TRIỂN KHAI TRÊN MÁY MỚI (DÙNG DOCKER LOCALHOST)
 
-Mở Terminal tại thư mục gốc của dự án (`c:\261\IOT\CO3054-IoT-BTL-FireAlarm`), thực thi:
+Khi clone hoặc copy toàn bộ project sang máy tính mới có cài **Docker Desktop**, thực hiện lần lượt các bước sau:
 
-```bash
-python run_system.py
+### Bước 2.1: Bật Docker Container ThingsBoard
+Mở ứng dụng Docker Desktop trên máy tính, sau đó mở Terminal tại thư mục gốc và chạy:
+
+```powershell
+python 02_Local_Gateway/dashboard/deploy_thingsboard.py
+```
+> **Lưu ý quan trọng**: Khi container `thingsboard-local` vừa được bật lên, dịch vụ Spring Boot và cơ sở dữ liệu PostgreSQL của ThingsBoard sẽ mất khoảng **45 - 60 giây** để khởi tạo hoàn toàn. Hãy đợi khoảng 1 phút trước khi sang Bước 2.2.
+
+---
+
+### Bước 2.2: Tự Động Nạp Dashboard & Thiết Bị (Provisioning)
+Chạy script tự động tạo thiết bị `FireAlarm_Gateway` (Token: `i2tchqq1390qcxhun4zr`) và dựng toàn bộ Industrial Dashboard:
+
+```powershell
+python 02_Local_Gateway/dashboard/setup_thingsboard_dashboard.py
+```
+*(Script có cơ chế tự động chờ ThingsBoard sẵn sàng tối đa 180 giây, không bao giờ lo bị lỗi 404).*
+
+---
+
+### Bước 2.3: Tự Động Nạp Rule Chain Báo Cháy
+Chạy script tải Rule Chain xử lý báo động 4 cấp độ và liên kết với Root Rule Chain:
+
+```powershell
+python 03_CoreIOT_Config/scripts/setup_rule_chain.py
 ```
 
-Hoặc trong PowerShell:
+---
+
+### Bước 2.4: Khởi Chạy Toàn Bộ Hệ Thống
+Cắm mạch ESP32-S3 vào cổng USB và chạy đúng 1 lệnh duy nhất:
 
 ```powershell
 python run_system.py
 ```
 
-### Các tham số cấu hình tùy chọn:
-* `--port COM4`: Chỉ định cứng cổng Serial của ESP32-S3 (nếu cắm cổng khác).
-* `--baud 115200`: Tốc độ baud UART (mặc định: 115200).
-* `--broker 127.0.0.1`: Địa chỉ ThingsBoard MQTT Broker (mặc định tự động nhận diện).
-* `--no-browser`: Chạy chế độ headless, không tự động bật cửa sổ trình duyệt.
+Hệ thống sẽ tự động:
+1. Kết nối mạch ESP32-S3 qua cổng COM (baudrate 115200).
+2. Kết nối tới ThingsBoard Local (`127.0.0.1:1883`).
+3. Tự động mở đồng thời cả 2 Dashboard trên trình duyệt:
+   * **Local SCADA Web Monitor**: `http://localhost:5050` (Điều khiển còi, đèn, servo thủ công tại chỗ).
+   * **ThingsBoard Industrial Dashboard**: `http://localhost:9090/dashboards/47c220e0-e55d-11f1-b536-af039a103c55` (Đồng hồ gas MQ-2, lửa, biểu đồ AI Anomaly).
 
 ---
 
-## 3. Hoạt Động & Giao Diện Giám Sát
+## 3. KỊCH BẢN B: CHẠY TRÊN MÁY KHÔNG CÓ DOCKER (DÙNG CLOUD BROKER)
 
-Khi lệnh `python run_system.py` chạy, hệ thống sẽ tự động:
+Nếu máy tính không cài Docker Desktop hoặc không muốn chạy local:
 
-1. **Nhận diện phần cứng**: Tự động quét và kết nối với bo mạch ESP32-S3 trên cổng COM.
-2. **Nhận diện nền tảng ThingsBoard**: Tự động kiểm tra cổng 9090/1883, ưu tiên ThingsBoard Local.
-3. **Mở đồng thời 2 Dashboard trên trình duyệt**:
-   * **Dashboard 1 - Local SCADA Web Monitor** (`http://localhost:5050`):
-     * Giám sát thông số cảm biến thời gian thực tại chỗ (On-station).
-     * Bảng điều khiển can thiệp thủ công: Nút bấm **Kích hoạt còi**, **Bật đèn LED**, **Đóng/Mở cửa Servo 90°**, nút **Lockdown khẩn cấp**.
-     * Nhật ký sự kiện FIFO kiểm toán thời gian thực.
-   * **Dashboard 2 - ThingsBoard Industrial SCADA** (`http://localhost:9090`):
-     * Đồng hồ kim (Gauge) nồng độ khói MQ-2 và phát hiện lửa.
-     * Trạng thái AI Anomaly (Isolation Forest: 0 = Bình thường, 1 = Bất thường).
-     * Đồ thị phân tích xu hướng nhiệt độ và khói theo thời gian thực.
-4. **Điều khiển hai chiều (Bidirectional RPC)**:
-   * Khi người dùng bấm nút trên Dashboard hoặc khi Rule Chain tự động kích hoạt, lệnh sẽ truyền từ ThingsBoard $\rightarrow$ Local Gateway $\rightarrow$ ESP32-S3 qua UART.
-   * Phần cứng thực tế sẽ phản hồi lệnh: Động cơ servo xoay, còi hú và đèn sáng tức thì kèm phản hồi `[ACK]`.
+```powershell
+python run_system.py --broker app.coreiot.io
+```
+* Dữ liệu telemetry sẽ được đẩy thẳng lên nền tảng đám mây `app.coreiot.io`.
+* Màn hình Local SCADA Web Monitor vẫn hoạt động độc lập tại `http://localhost:5050`.
 
 ---
 
-## 4. Cấu Trúc Dự Án Thực Tế (Không còn file mô phỏng)
+## 4. Cấu Trúc Dự Án Thực Tế (Production Clean)
 
 ```text
-CO3054-IoT-BTL-FireAlarm/
+c:\261\IOT\CO3054-IoT-BTL-FireAlarm\
+├── run_system.py               # FILE CHÍNH KHỞI CHẠY TOÀN BỘ HỆ THỐNG
+├── HUONG_DAN_CHAY.md           # Hướng dẫn chi tiết kịch bản A & B
+├── gateway_hardware_buffer.db  # CSDL SQLite lưu đệm phần cứng (WAL mode)
 │
-├── run_system.py                    # FILE CHÍNH KHỞI CHẠY TOÀN BỘ HỆ THỐNG
-├── HUONG_DAN_CHAY.md                # Tài liệu hướng dẫn sử dụng chi tiết
-├── gateway_hardware_buffer.db       # Cơ sở dữ liệu SQLite đệm (WAL Mode)
+├── 01_Firmware_EndNode/        # Firmware ESP32-S3 YoloUNO (C++/Arduino)
+│   ├── platformio.ini          # Cấu hình nạp firmware qua PlatformIO
+│   └── src/main.cpp            # Đọc cảm biến MQ-2, Lửa, DHT & xử lý lệnh RPC
 │
-├── 01_Firmware_EndNode/             # Mã nguồn nhúng ESP32-S3
-│   ├── platformio.ini               # Cấu hình PlatformIO & nạp flash
-│   └── src/main.cpp                 # Firmware C++ đọc cảm biến & nhận lệnh RPC
-│
-├── 02_Local_Gateway/                # Trạm cổng trung tâm & Edge AI
+├── 02_Local_Gateway/           # Gateway phần cứng UART & Edge AI
 │   ├── hardware_gateway/
-│   │   └── LocalGateway.py          # Bộ điều phối Gateway phần cứng UART
+│   │   └── LocalGateway.py     # Cổng giao tiếp UART & ThingsBoard MQTT
 │   ├── ui/
-│   │   ├── gateway_infrastructure.py# SQLite WAL repository & Web Monitor 5050
-│   │   └── isolation_detector.py    # Mô hình AI Isolation Forest phát hiện cháy
-│   ├── run_hardware_gateway.py      # Runner Gateway phần cứng cục bộ
-│   ├── test_system.py               # Bộ kiểm thử tự động toàn diện
+│   │   ├── gateway_infrastructure.py # Web Monitor 5050 & SQLite WAL
+│   │   └── isolation_detector.py     # Mô hình AI Isolation Forest
+│   ├── run_hardware_gateway.py # Runner phần cứng cục bộ
+│   ├── test_system.py          # Bộ kiểm thử tự động
 │   └── dashboard/
-│       ├── setup_thingsboard_dashboard.py # Tạo thiết bị & nạp Dashboard tự động
+│       ├── deploy_thingsboard.py          # Script bật/tắt Docker ThingsBoard
+│       ├── setup_thingsboard_dashboard.py # Nạp tự động thiết bị & Dashboard
 │       ├── thingsboard_dashboard.json     # File cấu hình Dashboard ThingsBoard 3.x
-│       └── docker-compose.yml             # Cấu hình ThingsBoard Docker Local
+│       └── docker-compose.yml             # File compose cấu hình container
 │
-├── 03_CoreIOT_Config/               # Quy tắc & Kịch bản kiểm thử nền tảng
+├── 03_CoreIOT_Config/          # ThingsBoard Rule Chains & Scripts
 │   ├── rule_chains/
 │   │   └── fire_alarm_rule_chain.json     # Rule Chain 4 cấp độ cảnh báo & RPC
 │   └── scripts/
@@ -105,16 +121,15 @@ CO3054-IoT-BTL-FireAlarm/
 │       ├── setup_rule_chain.py      # Tải tự động Rule Chain lên ThingsBoard
 │       └── test_rulechain_alert.py  # Kiểm thử tự động 4 giai đoạn báo cháy
 │
-└── 04_Docs_Media/                   # Báo cáo kỹ thuật, video demo & đồ thị đo
+└── 04_Docs_Media/              # Tài liệu báo cáo & số liệu thực nghiệm
 ```
 
 ---
 
 ## 5. Xử Lý Sự Cố Thường Gặp (Troubleshooting)
 
-| Tình trạng | Nguyên nhân khả dĩ | Cách khắc phục |
+| Tình trạng | Nguyên nhân | Cách khắc phục |
 | :--- | :--- | :--- |
-| **Không tìm thấy cổng COM4** | Cáp USB tiếp xúc kém hoặc mạch vừa reset sau nạp flash | Rút cáp USB cắm lại, hoặc bấm nút **RESET (EN)** trên mạch ESP32-S3 một lần. |
-| **ThingsBoard không cập nhật dữ liệu** | Docker ThingsBoard chưa bật | Mở Docker Desktop hoặc chạy `docker compose -f 02_Local_Gateway/dashboard/docker-compose.yml up -d`. |
-| **Độ trễ cao khi dùng Cloud Broker** | Mạng WiFi trường học chặn cổng MQTT 1883 | Sử dụng ThingsBoard Docker Local tại `127.0.0.1:1883` để đạt độ trễ tối ưu $\approx 100\text{ ms}$. |
-| **Muốn nạp lại Firmware mới** | Cần cập nhật firmware nhúng | Chạy lệnh: `cd 01_Firmware_EndNode; pio run --target upload --upload-port COM4`. |
+| **Lỗi `404 Not Found: /api/auth/login` khi chạy setup** | Container ThingsBoard vừa bật, Spring Boot chưa khởi tạo xong | Đợi thêm 30–45 giây để container nạp xong rồi chạy lại lệnh setup. Tui đã nâng timeout lên 180s để tự động chờ. |
+| **Không tìm thấy cổng COM** | Cáp USB tiếp xúc kém hoặc mạch vừa reset sau flash | Rút cáp USB cắm lại, hoặc bấm nút **RESET (EN)** trên mạch ESP32-S3 một lần. |
+| **Muốn nạp lại Firmware mới cho ESP32-S3** | Cần cập nhật firmware nhúng | Chạy lệnh: `cd 01_Firmware_EndNode; pio run --target upload --upload-port COM4`. |

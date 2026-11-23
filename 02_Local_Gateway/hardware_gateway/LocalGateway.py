@@ -554,6 +554,16 @@ class LocalHardwareGateway:
                         now_ts = time.time()
 
                         sensor_alarm, alarm_changed = self.update_sensor_alarm_state(payload)
+                        if sensor_alarm:
+                            payload["alarm_status"] = "CRITICAL FIRE HAZARD"
+                            payload["alarm_notification"] = f"[CRITICAL NOTIFICATION] Fire detected! Smoke: {s_val:.0f} ADC, Temp: {t_val:.1f}C. Auto lockdown active!"
+                        elif s_val >= 800.0:
+                            payload["alarm_status"] = "WARNING: HIGH SMOKE"
+                            payload["alarm_notification"] = f"[WARNING NOTIFICATION] Smoke elevating ({s_val:.0f} ADC). Monitoring system state."
+                        else:
+                            payload["alarm_status"] = "NORMAL (SAFE)"
+                            payload["alarm_notification"] = "[SAFE] System normal. Sensors reading clean air & safe ambient temperature."
+
                         with self.telemetry_lock:
                             self.latest_telemetry.update(payload)
                             if alarm_changed and not self.latest_telemetry["alarm_override"]:

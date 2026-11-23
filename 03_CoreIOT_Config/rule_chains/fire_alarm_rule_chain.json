@@ -1,332 +1,64 @@
 {
   "ruleChain": {
-    "name": "Fire_Alarm_Rule_Chain",
+    "name": "Fire Alarm Rule Chain",
     "type": "CORE",
+    "firstRuleNodeId": "rule-node-1-telemetry-filter",
+    "root": true,
     "debugMode": false,
-    "root": false,
-    "additionalInfo": {
-      "description": "Industrial Fire Alarm & Suppression Rule Chain (Criterion T12 & T13)"
-    }
+    "configuration": {}
   },
   "metadata": {
     "firstNodeIndex": 0,
     "nodes": [
       {
+        "id": "rule-node-1-telemetry-filter",
+        "type": "org.thingsboard.rule.engine.filter.TbJsFilterNode",
+        "name": "Filter Telemetry",
+        "debugMode": false,
+        "configuration": {
+          "jsScript": "return typeof msg.temperature !== 'undefined' || typeof msg.smoke_level !== 'undefined' || typeof msg.tinyml_fire !== 'undefined';"
+        }
+      },
+      {
+        "id": "rule-node-2-fire-evaluator",
         "type": "org.thingsboard.rule.engine.filter.TbJsSwitchNode",
-        "name": "Fire Level Classifier",
-        "configurationVersion": 0,
+        "name": "Evaluate Fire Risk",
+        "debugMode": false,
         "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var SMOKE_WARN = 1800.0;\nvar SMOKE_CRIT = 2000.0;\n\nvar smoke = (msg.smoke != null) ? Double.parseDouble(String.valueOf(msg.smoke)) : 0.0;\nvar flame = (msg.flame != null) ? Integer.parseInt(String.valueOf(msg.flame)) : 0;\nvar isAnomaly = (msg.is_anomaly != null) ? Integer.parseInt(String.valueOf(msg.is_anomaly)) : 0;\n\nif (flame == 1 || smoke > SMOKE_CRIT) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly == 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}",
-          "jsScript": "var SMOKE_WARN = 1800.0;\nvar SMOKE_CRIT = 2000.0;\n\nvar smoke = Number(msg.smoke || 0);\nvar flame = Number(msg.flame || 0);\nvar isAnomaly = Number(msg.is_anomaly || 0);\n\nif (flame === 1 || smoke > SMOKE_CRIT) {\n    return ['Critical'];\n} else if (smoke >= SMOKE_WARN || isAnomaly === 1) {\n    return ['Warning'];\n} else {\n    return ['Safe'];\n}"
-        },
-        "additionalInfo": {
-          "layoutX": 160,
-          "layoutY": 350
+          "jsScript": "var isTinyML = msg.tinyml_fire === true || msg.tinyml_fire === 1 || msg.tinyml_fire === '1' || msg.tinyml_fire === 'true';\nif (msg.temperature > 50.0 || msg.smoke_level > 400 || isTinyML) {\n    return ['True'];\n}\nreturn ['False'];"
         }
       },
       {
+        "id": "rule-node-3-create-alarm",
         "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
-        "name": "Create Fire Critical Alarm",
-        "configurationVersion": 0,
+        "name": "Create Fire Alarm",
+        "debugMode": false,
         "configuration": {
-          "alarmType": "FIRE_ALARM_CRITICAL",
+          "alarmType": "FIRE_ALARM",
+          "alarmDetailsBuildJs": "var details = { temperature: msg.temperature, smoke_level: msg.smoke_level, tinyml_fire: msg.tinyml_fire, location: metadata.deviceLocation || 'Zone 1' };\nreturn details;",
           "severity": "CRITICAL",
-          "propagate": false,
-          "scriptLang": "TBEL",
-          "alarmDetailsBuildTbel": "var details = {};\nif (metadata.prevAlarmDetails != null) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\ndetails.smoke = msg.smoke;\ndetails.flame = msg.flame;\ndetails.temperature = (msg.temperature != null) ? msg.temperature : 24.0;\ndetails.is_anomaly = msg.is_anomaly;\ndetails.anomaly_score = msg.anomaly_score;\ndetails.action = 'AUTO_LOCKDOWN: Servo=90, Buzzer=1, LED=1';\nreturn details;",
-          "alarmDetailsBuildJs": "var details = {};\nif (metadata.prevAlarmDetails != null) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\ndetails.smoke = msg.smoke;\ndetails.flame = msg.flame;\ndetails.temperature = (msg.temperature != null) ? msg.temperature : 24.0;\ndetails.is_anomaly = msg.is_anomaly;\ndetails.anomaly_score = msg.anomaly_score;\ndetails.action = 'AUTO_LOCKDOWN: Servo=90, Buzzer=1, LED=1';\nreturn details;",
+          "propagate": true,
           "useMessageAlarmData": false,
-          "overwriteAlarmDetails": false
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": 150
+          "overwriteAlarmDetails": true
         }
       },
       {
-        "type": "org.thingsboard.rule.engine.action.TbCreateAlarmNode",
-        "name": "Create Fire Warning Alarm",
-        "configurationVersion": 0,
-        "configuration": {
-          "alarmType": "FIRE_ALARM_WARNING",
-          "severity": "WARNING",
-          "propagate": false,
-          "scriptLang": "TBEL",
-          "alarmDetailsBuildTbel": "var details = {};\nif (metadata.prevAlarmDetails != null) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\ndetails.smoke = msg.smoke;\ndetails.flame = msg.flame;\ndetails.temperature = (msg.temperature != null) ? msg.temperature : 24.0;\ndetails.is_anomaly = msg.is_anomaly;\ndetails.anomaly_score = msg.anomaly_score;\ndetails.action = 'EARLY_WARNING_MONITORING';\nreturn details;",
-          "alarmDetailsBuildJs": "var details = {};\nif (metadata.prevAlarmDetails != null) {\n    details = JSON.parse(metadata.prevAlarmDetails);\n}\ndetails.smoke = msg.smoke;\ndetails.flame = msg.flame;\ndetails.temperature = (msg.temperature != null) ? msg.temperature : 24.0;\ndetails.is_anomaly = msg.is_anomaly;\ndetails.anomaly_score = msg.anomaly_score;\ndetails.action = 'EARLY_WARNING_MONITORING';\nreturn details;",
-          "useMessageAlarmData": false,
-          "overwriteAlarmDetails": false
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": 350
-        }
-      },
-      {
+        "id": "rule-node-4-clear-alarm",
         "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
-        "name": "Clear Critical Alarm",
-        "configurationVersion": 0,
+        "name": "Clear Fire Alarm",
+        "debugMode": false,
         "configuration": {
-          "alarmType": "FIRE_ALARM_CRITICAL",
-          "scriptLang": "TBEL",
-          "alarmDetailsBuildTbel": "return {};",
-          "alarmDetailsBuildJs": "return {};"
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": 550
+          "alarmType": "FIRE_ALARM",
+          "alarmDetailsBuildJs": "var details = { clearedAt: new Date().toISOString(), status: 'NORMAL' };\nreturn details;"
         }
       },
       {
-        "type": "org.thingsboard.rule.engine.action.TbClearAlarmNode",
-        "name": "Clear Warning Alarm",
-        "configurationVersion": 0,
+        "id": "rule-node-5-save-timeseries",
+        "type": "org.thingsboard.rule.engine.telemetry.TbMsgTimeseriesNode",
+        "name": "Save Telemetry",
+        "debugMode": false,
         "configuration": {
-          "alarmType": "FIRE_ALARM_WARNING",
-          "scriptLang": "TBEL",
-          "alarmDetailsBuildTbel": "return {};",
-          "alarmDetailsBuildJs": "return {};"
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": 680
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setServo(90)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setServo\", \"params\": 90 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setServo\", \"params\": 90 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": 50
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setServo ON",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 50
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setBuzzer(0)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": -60
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setBuzzer OFF",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": -60
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setLed(1)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setLed\", \"params\": 1 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setLed\", \"params\": 1 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 480,
-          "layoutY": -170
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setLed ON",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": -170
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setServo(0)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setServo\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setServo\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 450
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setServo OFF",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 1120,
-          "layoutY": 450
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setBuzzer(0)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setBuzzer\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 560
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setBuzzer OFF",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 1120,
-          "layoutY": 560
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Transform RPC setLed(0)",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var newMsg = { \"method\": \"setLed\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};",
-          "jsScript": "var newMsg = { \"method\": \"setLed\", \"params\": 0 };\nreturn {msg: newMsg, metadata: metadata, msgType: \"POST_TELEMETRY_REQUEST\"};"
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 670
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rpc.TbSendRPCRequestNode",
-        "name": "RPC setLed OFF",
-        "configurationVersion": 0,
-        "configuration": {
-          "timeoutInSeconds": 5
-        },
-        "additionalInfo": {
-          "layoutX": 1120,
-          "layoutY": 670
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Build Telegram Critical Payload",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var deviceName = (metadata.deviceName != null) ? metadata.deviceName : 'FireAlarm_Gateway';\nvar details = (msg.details != null) ? msg.details : msg;\n\nvar smoke = (details.smoke != null) ? details.smoke : 'N/A';\nvar flame = (details.flame != null) ? details.flame : 'N/A';\nvar temp = (details.temperature != null) ? details.temperature : 'N/A';\nvar score = (details.anomaly_score != null) ? details.anomaly_score : 'N/A';\n\nvar text = '[CRITICAL FIRE ALARM]\\n' +\n    'Device: ' + deviceName + '\\n' +\n    'Smoke: ' + smoke + ' ppm\\n' +\n    'Flame: ' + flame + '\\n' +\n    'Temperature: ' + temp + ' C\\n' +\n    'AI Anomaly Score: ' + score + '\\n' +\n    'Auto Action: Servo=90 (Closed), Buzzer=ON, LED=ON';\n\nvar newMsg = {\n    'chat_id': '<YOUR_TELEGRAM_CHAT_ID>',\n    'text': text\n};\n\nreturn {msg: newMsg, metadata: metadata, msgType: 'POST_TELEMETRY_REQUEST'};",
-          "jsScript": "var deviceName = (metadata.deviceName != null) ? metadata.deviceName : 'FireAlarm_Gateway';\nvar details = (msg.details != null) ? msg.details : msg;\n\nvar smoke = (details.smoke != null) ? details.smoke : 'N/A';\nvar flame = (details.flame != null) ? details.flame : 'N/A';\nvar temp = (details.temperature != null) ? details.temperature : 'N/A';\nvar score = (details.anomaly_score != null) ? details.anomaly_score : 'N/A';\n\nvar text = '[CRITICAL FIRE ALARM]\\n' +\n    'Device: ' + deviceName + '\\n' +\n    'Smoke: ' + smoke + ' ppm\\n' +\n    'Flame: ' + flame + '\\n' +\n    'Temperature: ' + temp + ' C\\n' +\n    'AI Anomaly Score: ' + score + '\\n' +\n    'Auto Action: Servo=90 (Closed), Buzzer=ON, LED=ON';\n\nvar newMsg = {\n    'chat_id': '<YOUR_TELEGRAM_CHAT_ID>',\n    'text': text\n};\n\nreturn {msg: newMsg, metadata: metadata, msgType: 'POST_TELEMETRY_REQUEST'};"
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 150
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rest.TbRestApiCallNode",
-        "name": "Send Telegram Critical Alert",
-        "configurationVersion": 3,
-        "configuration": {
-          "restEndpointUrlPattern": "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage",
-          "requestMethod": "POST",
-          "headers": {
-            "Content-Type": "application/json"
-          },
-          "useSimpleClientHttpFactory": true,
-          "readTimeoutMs": 5000,
-          "maxParallelRequestsCount": 0,
-          "parseToPlainText": false,
-          "enableProxy": false,
-          "useSystemProxyProperties": false,
-          "credentials": {
-            "type": "anonymous"
-          },
-          "ignoreRequestBody": false
-        },
-        "additionalInfo": {
-          "layoutX": 1120,
-          "layoutY": 150
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.transform.TbTransformMsgNode",
-        "name": "Build Telegram Cleared Payload",
-        "configurationVersion": 0,
-        "configuration": {
-          "scriptLang": "TBEL",
-          "tbelScript": "var deviceName = (metadata.deviceName != null) ? metadata.deviceName : 'FireAlarm_Gateway';\n\nvar text = '[RESOLVED] Fire Alarm Cleared - System Safe\\n' +\n    'Device: ' + deviceName + '\\n' +\n    'Status: All fire hazards cleared. Environment normal.\\n' +\n    'Auto Action: Servo=0 (Open), Buzzer=OFF, LED=OFF';\n\nvar newMsg = {\n    'chat_id': '<YOUR_TELEGRAM_CHAT_ID>',\n    'text': text\n};\n\nreturn {msg: newMsg, metadata: metadata, msgType: 'POST_TELEMETRY_REQUEST'};",
-          "jsScript": "var deviceName = (metadata.deviceName != null) ? metadata.deviceName : 'FireAlarm_Gateway';\n\nvar text = '[RESOLVED] Fire Alarm Cleared - System Safe\\n' +\n    'Device: ' + deviceName + '\\n' +\n    'Status: All fire hazards cleared. Environment normal.\\n' +\n    'Auto Action: Servo=0 (Open), Buzzer=OFF, LED=OFF';\n\nvar newMsg = {\n    'chat_id': '<YOUR_TELEGRAM_CHAT_ID>',\n    'text': text\n};\n\nreturn {msg: newMsg, metadata: metadata, msgType: 'POST_TELEMETRY_REQUEST'};"
-        },
-        "additionalInfo": {
-          "layoutX": 800,
-          "layoutY": 780
-        }
-      },
-      {
-        "type": "org.thingsboard.rule.engine.rest.TbRestApiCallNode",
-        "name": "Send Telegram Cleared Alert",
-        "configurationVersion": 3,
-        "configuration": {
-          "restEndpointUrlPattern": "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage",
-          "requestMethod": "POST",
-          "headers": {
-            "Content-Type": "application/json"
-          },
-          "useSimpleClientHttpFactory": true,
-          "readTimeoutMs": 5000,
-          "maxParallelRequestsCount": 0,
-          "parseToPlainText": false,
-          "enableProxy": false,
-          "useSystemProxyProperties": false,
-          "credentials": {
-            "type": "anonymous"
-          },
-          "ignoreRequestBody": false
-        },
-        "additionalInfo": {
-          "layoutX": 1120,
-          "layoutY": 780
+          "defaultTTL": 0
         }
       }
     ],
@@ -334,109 +66,23 @@
       {
         "fromIndex": 0,
         "toIndex": 1,
-        "type": "Critical"
-      },
-      {
-        "fromIndex": 1,
-        "toIndex": 5,
-        "type": "Created"
-      },
-      {
-        "fromIndex": 1,
-        "toIndex": 7,
-        "type": "Created"
-      },
-      {
-        "fromIndex": 1,
-        "toIndex": 9,
-        "type": "Created"
-      },
-      {
-        "fromIndex": 0,
-        "toIndex": 2,
-        "type": "Warning"
-      },
-      {
-        "fromIndex": 0,
-        "toIndex": 3,
-        "type": "Warning"
-      },
-      {
-        "fromIndex": 0,
-        "toIndex": 3,
-        "type": "Safe"
+        "type": "True"
       },
       {
         "fromIndex": 0,
         "toIndex": 4,
-        "type": "Safe"
+        "type": "True"
       },
       {
         "fromIndex": 1,
-        "toIndex": 17,
-        "type": "Created"
+        "toIndex": 2,
+        "type": "True"
       },
       {
-        "fromIndex": 17,
-        "toIndex": 18,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 5,
-        "toIndex": 6,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 7,
-        "toIndex": 8,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 9,
-        "toIndex": 10,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 3,
-        "toIndex": 11,
-        "type": "Cleared"
-      },
-      {
-        "fromIndex": 3,
-        "toIndex": 13,
-        "type": "Cleared"
-      },
-      {
-        "fromIndex": 3,
-        "toIndex": 15,
-        "type": "Cleared"
-      },
-      {
-        "fromIndex": 3,
-        "toIndex": 19,
-        "type": "Cleared"
-      },
-      {
-        "fromIndex": 11,
-        "toIndex": 12,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 13,
-        "toIndex": 14,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 15,
-        "toIndex": 16,
-        "type": "Success"
-      },
-      {
-        "fromIndex": 19,
-        "toIndex": 20,
-        "type": "Success"
+        "fromIndex": 1,
+        "toIndex": 3,
+        "type": "False"
       }
-    ],
-    "ruleChainConnections": null
+    ]
   }
 }

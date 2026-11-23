@@ -1,0 +1,272 @@
+% !TeX root = ../report.tex
+
+\section{PHÂN TÍCH HỆ THỐNG}
+\label{sec:phan-tich-he-thong}
+
+\subsection{Kiến trúc tổng thể}
+\label{subsec:kien-truc-tong-the}
+
+Hệ thống báo cháy IoT được thiết kế theo \textbf{mô hình kiến trúc ba tầng kết hợp Local IoT Gateway} (End-Node $\leftrightarrow$ Local IoT Gateway $\leftrightarrow$ CoreIOT/ThingsBoard Server), thay vì để vi điều khiển kết nối trực tiếp tới đám mây. Lý do lựa chọn mô hình qua IoT Gateway gồm ba yếu tố cốt lõi:
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Đảm bảo khả năng sống còn tại chỗ (Local Survivability):} Khi kết nối Internet hoặc máy chủ đám mây gặp sự cố, Local Gateway vẫn duy trì giao diện SCADA cục bộ (cổng \texttt{5050}) và cho phép vận hành viên điều khiển trực tiếp còi, đèn, cửa chống cháy qua UART.
+  \item \textbf{Lưu đệm chống mất dữ liệu (Store-and-Forward):} Vi điều khiển ESP32-S3 có dung lượng bộ nhớ hạn chế, trong khi PC/Raspberry Pi đóng vai trò Gateway dễ dàng lưu trữ lâu dài hàng nghìn bản ghi telemetry vào cơ sở dữ liệu SQLite WAL (\texttt{gateway\_hardware\_buffer.db}) và đồng bộ bù khi có mạng trở lại.
+  \item \textbf{Hỗ trợ kiến trúc Dual-AI phân cấp:} Tách biệt rõ tác vụ suy luận siêu nhẹ có độ trễ dưới $1\text{ ms}$ trên MCU (TinyML) với tác vụ phát hiện bất thường đa biến cập nhật động (Isolation Forest bằng \texttt{scikit-learn}) trên Gateway.
+\end{enumerate}
+
+Sơ đồ khối kiến trúc tổng thể cùng hướng luồng telemetry (uplink), luồng điều khiển RPC/command (downlink) và giao thức trên từng chặng được minh họa tại Hình \ref{fig:kien-truc-tong-the}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[scale=0.88, every node/.style={font=\footnotesize}]
+    % Layer 1: End-Node
+    \draw[rounded corners=4pt, fill=iotGroupRow, draw=iotPrimary, thick] (0,0) rectangle (4.5,6.2);
+    \node[font=\footnotesize\bfseries, text=iotPrimary] at (2.25,5.85) {TẦNG 1: END-NODE};
+    \node[font=\scriptsize, text=gray!80!black] at (2.25,5.48) {YoloUNO (ESP32-S3)};
+
+    \node[draw=iotSecondary, fill=white, rounded corners=2pt, text width=3.8cm, align=center, minimum height=1.05cm] (sens) at (2.25,4.45) {\textbf{Cảm biến đầu vào}\\MQ-2 (ADC 12-bit, A0)\\Flame (D6) \& DHT11 (D7)};
+    \node[draw=iotAccent, fill=white, rounded corners=2pt, text width=3.8cm, align=center, minimum height=0.95cm] (tiny) at (2.25,3.05) {\textbf{TinyML Engine (T04)}\\Logistic Reg. + Z-Score\\(\texttt{tinyml\_fire\_model.h})};
+    \node[draw=iotPrimary, fill=white, rounded corners=2pt, text width=3.8cm, align=center, minimum height=1.25cm] (act) at (2.25,1.2) {\textbf{Hiển thị \& Chấp hành}\\TFT ILI9341 (SPI 320$\times$240)\\Servo (D2), Buzzer (D3),\\LED (D8) + Hysteresis};
+
+    \draw[->, >=stealth, thick, iotPrimary] (sens.south) -- (tiny.north);
+    \draw[->, >=stealth, thick, iotPrimary] (tiny.south) -- (act.north);
+
+    % Layer 2: Local Gateway
+    \draw[rounded corners=4pt, fill=iotGroupRow, draw=iotPrimary, thick] (6.1,0) rectangle (11.1,6.2);
+    \node[font=\footnotesize\bfseries, text=iotPrimary] at (8.6,5.85) {TẦNG 2: LOCAL GATEWAY};
+    \node[font=\scriptsize, text=gray!80!black] at (8.6,5.48) {PC / Python (T08--T10, T15, N06)};
+
+    \node[draw=iotSecondary, fill=white, rounded corners=2pt, text width=4.3cm, align=center, minimum height=0.95cm] (gwcore) at (8.6,4.55) {\textbf{LocalGateway.py (T08)}\\UART Adapter + Parser\\Command Queue \& Sync Worker};
+    \node[draw=iotAccent, fill=white, rounded corners=2pt, text width=4.3cm, align=center, minimum height=0.85cm] (iforest) at (8.6,3.3) {\textbf{Edge AI (T09)}\\Isolation Forest (\texttt{scikit-learn})\\Cửa sổ trượt 200 mẫu};
+    \node[draw=iotPrimary, fill=white, rounded corners=2pt, text width=4.3cm, align=center, minimum height=0.85cm] (wal) at (8.6,2.1) {\textbf{Offline Buffer (T15)}\\SQLite WAL (\texttt{buffer.db})\\FIFO Store \& Forward};
+    \node[draw=iotSecondary, fill=white, rounded corners=2pt, text width=4.3cm, align=center, minimum height=0.95cm] (scada) at (8.6,0.85) {\textbf{Local SCADA UI (T10, N06)}\\HTTP Port 5050 + REST API\\5 Thẻ đo + Event Log};
+
+    \draw[->, >=stealth, iotPrimary] (gwcore.south) -- (iforest.north);
+    \draw[->, >=stealth, iotPrimary] (iforest.south) -- (wal.north);
+    \draw[<->, >=stealth, iotPrimary] (wal.south) -- (scada.north);
+
+    % Layer 3: CoreIOT / ThingsBoard
+    \draw[rounded corners=4pt, fill=iotGroupRow, draw=iotPrimary, thick] (12.8,0) rectangle (17.5,6.2);
+    \node[font=\footnotesize\bfseries, text=iotPrimary] at (15.15,5.85) {TẦNG 3: COREIOT};
+    \node[font=\scriptsize, text=gray!80!black] at (15.15,5.48) {ThingsBoard Docker (N07) / Cloud};
+
+    \node[draw=iotSecondary, fill=white, rounded corners=2pt, text width=4.0cm, align=center, minimum height=1.0cm] (broker) at (15.15,4.5) {\textbf{MQTT Broker \& DB}\\Port 1883 / PostgreSQL\\Device \& Gateway API};
+    \node[draw=iotAccent, fill=white, rounded corners=2pt, text width=4.0cm, align=center, minimum height=1.05cm] (rc) at (15.15,3.0) {\textbf{Rule Chain (T12, T13)}\\Phân loại mức cháy\\Tạo/Xóa Alarm \& RPC};
+    \node[draw=iotPrimary, fill=white, rounded corners=2pt, text width=4.0cm, align=center, minimum height=1.25cm] (dash) at (15.15,1.2) {\textbf{Web Dashboard (T11, T13)}\\HTTP Port 9090 (10 Widget)\\Biểu đồ + 3 Switch RPC\\+ Notification Feed};
+
+    \draw[->, >=stealth, thick, iotPrimary] (broker.south) -- (rc.north);
+    \draw[<->, >=stealth, thick, iotPrimary] (rc.south) -- (dash.north);
+
+    % Inter-layer connections
+    \draw[->, >=stealth, very thick, iotSecondary] (4.5,4.5) -- node[above, align=center, font=\scriptsize] {UART 115200\\Telemetry} (6.1,4.5);
+    \draw[->, >=stealth, very thick, iotAccent, dashed] (6.1,1.6) -- node[below, align=center, font=\scriptsize] {JSON Cmd\\(Servo/LED/Buz)} (4.5,1.6);
+
+    \draw[->, >=stealth, very thick, iotSecondary] (11.1,4.5) -- node[above, align=center, font=\scriptsize] {MQTT QoS 1\\Telemetry} (12.8,4.5);
+    \draw[->, >=stealth, very thick, iotAccent, dashed] (12.8,2.9) -- node[below, align=center, font=\scriptsize] {MQTT RPC\\Downlink} (11.1,2.9);
+  \end{tikzpicture}
+  \caption{Sơ đồ kiến trúc tổng thể hệ thống báo cháy IoT ba tầng}
+  \label{fig:kien-truc-tong-the}
+\end{figure}
+
+\subsection{Phân rã chức năng}
+\label{subsec:phan-ra-chuc-nang}
+
+Từ danh sách tính năng \texttt{F01}--\texttt{F10} tại Mục \ref{subsec:de-xuat-tinh-nang}, hệ thống được phân rã thành sáu phân hệ chức năng con gồm: (1) Thu thập cảm biến và hiển thị tại chỗ, (2) Suy luận và phát hiện bất thường bằng AI, (3) Truyền thông hai chiều UART/MQTT/HTTP, (4) Lưu trữ đệm và đồng bộ ngoại tuyến, (5) Giám sát và cảnh báo tập trung, và (6) Điều khiển chấp hành tự động và cưỡng bức. Cấu trúc phân rã dạng cây được biểu diễn tại Hình \ref{fig:phan-ra-chuc-nang}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[scale=0.86, every node/.style={font=\scriptsize}]
+    % Root
+    \node[draw=iotPrimary, fill=iotPrimary, text=white, rounded corners=3pt, font=\footnotesize\bfseries, minimum width=7.5cm, minimum height=0.75cm] (root) at (8.5,5.6) {HỆ THỐNG BÁO CHÁY IoT THÔNG MINH (F01--F10)};
+
+    % Level 1 nodes
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c1) at (1.3,3.8) {\textbf{Thu thập \& Hiển thị}\\(F01)};
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c2) at (4.18,3.8) {\textbf{Phân tích Dual-AI}\\(F02, F03, F06)};
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c3) at (7.06,3.8) {\textbf{Truyền thông \& Đệm}\\(F05)};
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c4) at (9.94,3.8) {\textbf{Giám sát SCADA}\\(F07, F09)};
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c5) at (12.82,3.8) {\textbf{Xử lý thông minh}\\(F08, F10)};
+    \node[draw=iotSecondary, fill=iotTableHead, rounded corners=2pt, text width=2.45cm, align=center, minimum height=0.85cm] (c6) at (15.7,3.8) {\textbf{Chấp hành \& An toàn}\\(F04, F05)};
+
+    % Edges root -> Level 1
+    \draw[thick, iotPrimary] (root.south) -- (8.5,4.75);
+    \draw[thick, iotPrimary] (1.3,4.75) -- (15.7,4.75);
+    \foreach \x in {1.3,4.18,7.06,9.94,12.82,15.7} {
+      \draw[->, >=stealth, thick, iotPrimary] (\x,4.75) -- (\x,4.25);
+    }
+
+    % Level 2 leaf nodes
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l1) at (1.3,1.6) {- Đọc MQ-2 ADC 12-bit\\- Đọc Flame (D6)\\- Đọc DHT11 (D7)\\- Vẽ TFT ILI9341\\- Hysteresis chống nhiễu};
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l2) at (4.18,1.6) {- Sinh dữ liệu 2500 mẫu\\- Xuất \texttt{tinyml\_fire\_model.h}\\- Nội suy trên ESP32\\- Isolation Forest (PC)\\- Chống độc dữ liệu nền};
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l3) at (7.06,1.6) {- Auto-detect cổng COM\\- UART 115200 bps\\- SQLite WAL lưu đệm\\- Sync Worker FIFO 3s\\- MQTT QoS 1 (Dev/GW)};
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l4) at (9.94,1.6) {- Web cục bộ cổng 5050\\- REST \texttt{/api/telemetry}\\- Audit Event Log (N06)\\- Dashboard TB 10 widget\\- Biểu đồ lịch sử 5 phút};
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l5) at (12.82,1.6) {- Docker \texttt{tb-postgres}\\- Auto-provision REST\\- Rule Chain lọc \& rẽ nhánh\\- Tạo/Xóa Alarm Cloud\\- Notification Feed (T13)};
+    \node[draw=gray!70, fill=white, rounded corners=2pt, text width=2.45cm, align=left, minimum height=2.2cm] (l6) at (15.7,1.6) {- Servo cửa ($0^\circ$/$180^\circ$)\\- Buzzer 500 Hz \& LED\\- Hàng đợi lệnh bất đồng bộ\\- Khóa liên động RPC\\- Ưu tiên cháy thật};
+
+    \foreach \i in {1,...,6} {
+      \draw[->, >=stealth, iotSecondary] (c\i.south) -- (l\i.north);
+    }
+  \end{tikzpicture}
+  \caption{Sơ đồ phân rã chức năng hệ thống báo cháy IoT}
+  \label{fig:phan-ra-chuc-nang}
+\end{figure}
+
+\subsection{Phân lớp tính năng}
+\label{subsec:phan-lop-tinh-nang}
+
+\subsubsection{Lớp cảm biến}
+\label{subsubsec:lop-cam-bien}
+
+Yêu cầu của lớp cảm biến là phát hiện sớm đồng thời ba dấu hiệu vật lý đặc trưng của đám cháy: khí gas/khói cháy, bức xạ hồng ngoại từ ngọn lửa và sự gia tăng nhiệt độ môi trường. Thay vì dùng các chuẩn công nghiệp tốn chi phí như Modbus RS485 (T02) hay cảm biến không dây BLE (T03) dễ bị suy hao trong không gian thử nghiệm gần, nhóm kết nối trực tiếp ba cảm biến vào chân ADC và GPIO của bo mạch YoloUNO (ESP32-S3):
+
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Cảm biến khói/khí gas MQ-2:} Nối chân tương tự \texttt{A0} (\texttt{GPIO1}), đọc bằng bộ chuyển đổi ADC độ phân giải 12-bit (\texttt{analogReadResolution(12)}, dải giá trị $0$--$4095$), chu kỳ lấy mẫu $100\text{ ms}$. Áp dụng cơ chế trễ (hysteresis) với ngưỡng kích hoạt \texttt{MQ2\_ALARM\_THRESHOLD = 1800} và ngưỡng hủy \texttt{MQ2\_CLEAR\_THRESHOLD = 1650} để loại bỏ dao động trạng thái quanh ngưỡng.
+  \item \textbf{Cảm biến ngọn lửa hồng ngoại (Flame Sensor):} Nối chân số \texttt{D6} (\texttt{GPIO9}) cấu hình \texttt{INPUT\_PULLUP}, tích cực mức thấp (\texttt{LOW} khi phát hiện bức xạ lửa), chu kỳ lấy mẫu $100\text{ ms}$.
+  \item \textbf{Cảm biến nhiệt độ -- độ ẩm DHT11:} Nối chân số \texttt{D7} (\texttt{GPIO10}), giao tiếp đơn dây (1-Wire riêng của DHT), chu kỳ đọc $2000\text{ ms}$ theo đặc tính phần cứng cảm biến. Ngưỡng trễ nhiệt độ gồm \texttt{TEMP\_ALARM\_THRESHOLD\_C = 35.0}~$^\circ\text{C}$ và \texttt{TEMP\_CLEAR\_THRESHOLD\_C = 34.0}~$^\circ\text{C}$. Khi cảm biến chưa sẵn sàng (giá trị \texttt{NaN}), firmware duy trì giá trị mặc định an toàn cho đầu vào TinyML ($28.0^\circ\text{C}$, độ ẩm $65\%$) và ghi cảnh báo lên Serial.
+\end{itemize}
+
+\subsubsection{Lớp giao tiếp}
+\label{subsubsec:lop-giao-tiep}
+
+Lớp giao tiếp được chia làm hai chặng rõ rệt nhằm cân bằng giữa độ tin cậy kết nối phần cứng và chuẩn hóa truyền tin IoT:
+
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Chặng End-Node $\leftrightarrow$ Local Gateway (UART USB-CDC 115200 bps):} So với truyền thông vô tuyến tầm ngắn (ESP-NOW/BLE), kết nối nối tiếp USB-CDC trên ESP32-S3 (\texttt{ARDUINO\_USB\_MODE=1}, \texttt{ARDUINO\_USB\_CDC\_ON\_BOOT=1}) vừa cấp nguồn vừa truyền dữ liệu ổn định với tỉ lệ mất gói vật lý bằng $0\%$. Định kỳ mỗi $500\text{ ms}$, End-Node gửi dòng dữ liệu văn bản có cấu trúc:
+  \begin{center}
+    \texttt{MQ-2 ADC: <val> | Lua: <PHAT HIEN|KHONG> | Nhiet do: <t> C | Do am: <h>\% | AI Risk: <r>\% | Trang thai: <AN TOAN|CANH BAO>}
+  \end{center}
+  Chiều ngược lại, Gateway gửi các khung lệnh JSON kết thúc bằng ký tự xuống dòng (\texttt{\textbackslash n}), ví dụ \texttt{\{"servo": 90\}}, \texttt{\{"buzzer": 1\}}, \texttt{\{"led": 1\}} hoặc \texttt{\{"alarm\_override": 1\}}.
+  \item \textbf{Chặng Local Gateway $\leftrightarrow$ CoreIOT/ThingsBoard (MQTT QoS 1):} Sử dụng giao thức MQTT v3.1.1 \cite{ref_mqtt} trên cổng TCP \texttt{1883}, xác thực bằng mã thiết bị Access Token (\texttt{i2tchqq1390qcxhun4zr}) và mức chất lượng dịch vụ \texttt{QoS 1} (At Least Once) để nhận gói xác nhận \texttt{PUBACK} từ Broker. Gateway hỗ trợ cả hai chế độ API chuẩn của ThingsBoard:
+  \begin{itemize}[leftmargin=*, itemsep=2pt]
+    \item \textit{Device API (mặc định):} Gửi telemetry lên chủ đề \path{v1/devices/me/telemetry}, lắng nghe lệnh RPC trên \path{v1/devices/me/rpc/request/+} và phản hồi ACK trên \path{v1/devices/me/rpc/response/{req_id}}.
+    \item \textit{Gateway API (cờ \texttt{--gateway-api}):} Đóng gói telemetry cho thiết bị con \path{YOLOUNO_FIRE_NODE_01} trên chủ đề \path{v1/gateway/telemetry} dạng JSON danh sách điểm đo theo dấu thời gian và nhận/trả lời RPC qua \path{v1/gateway/rpc}.
+  \end{itemize}
+  \item \textbf{Chặng Local Gateway $\leftrightarrow$ Trình duyệt cục bộ (HTTP REST):} Máy chủ HTTP tích hợp trên cổng \texttt{5050} cung cấp hai điểm cuối \path{GET /api/telemetry} (trả về JSON trạng thái mới nhất, trình duyệt thăm dò mỗi $1000\text{ ms}$) và \path{POST /api/control} (nhận lệnh điều khiển chấp hành).
+\end{enumerate}
+
+\subsubsection{Lớp IoT Gateway}
+\label{subsubsec:lop-iot-gateway}
+
+Lớp IoT Gateway được hiện thực bằng ngôn ngữ Python 3 trên máy tính cá nhân (tương thích hoàn toàn với Raspberry Pi OS) gồm các thành phần kiến trúc sau:
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Tự động nhận diện và phục hồi kết nối phần cứng (T08):} Mô-đun \texttt{HardwareSerialAdapter} quét các thiết bị USB Serial theo chữ ký phần cứng (\texttt{ESP32}, \texttt{CH340}, \texttt{CP210}, \texttt{UART}, \texttt{USB SERIAL}, VID \texttt{303A}); khi cáp bị ngắt kết nối, vòng lặp chính tự động thử mở lại cổng sau mỗi $3\text{ s}$.
+  \item \textbf{Bộ đệm ngoại tuyến SQLite WAL và đồng bộ bù (T15):} Mọi bản tin cảm biến hợp lệ đều được chèn vào bảng \path{telemetry_buffer} (\path{gateway_hardware_buffer.db}) với cờ \texttt{synced = 0} ở chế độ \texttt{PRAGMA journal\_mode=WAL} và \texttt{PRAGMA synchronous=NORMAL}. Luồng nền \path{sync_worker} chạy định kỳ $3\text{ s}$/lần, lấy tối đa 25 bản ghi chưa đồng bộ theo thứ tự FIFO (\texttt{ORDER BY id ASC}), gửi qua MQTT QoS 1, cập nhật \texttt{synced = 1} khi thành công và tự động dọn các bản ghi đã đồng bộ cũ hơn 7 ngày để chống phình cơ sở dữ liệu.
+  \item \textbf{Hàng đợi lệnh bất đồng bộ và khóa liên động an toàn:} Luồng \path{command_worker} lấy lệnh từ \path{queue.Queue} để gửi xuống UART, tách biệt hoàn toàn với luồng mạng MQTT và HTTP nhằm tránh chặn \texttt{keepalive}. Đồng thời, hàm \path{rpc_command()} phân biệt rạch ròi lệnh tự động từ Rule Chain (\texttt{setServo}, \texttt{setBuzzer}, \texttt{setLed}) với lệnh thủ công từ Dashboard (\texttt{setAlarmOverride}, \texttt{manualSetBuzzer}, \texttt{manualSetLed}): các lệnh bật cảnh báo tự động từ Cloud bị từ chối nếu cảm biến thực tế tại chỗ đang ở trạng thái an toàn.
+  \item \textbf{Giao diện giám sát -- điều khiển cục bộ (T10, N06):} Lớp \path{EmbeddedWebMonitor} xây dựng trên thư viện chuẩn \path{http.server} và \path{socketserver.TCPServer} (không cần Flask/Node.js), phục vụ bảng điều khiển SCADA tại \url{http://localhost:5050} kèm danh sách nhật ký sự kiện thời gian thực.
+\end{itemize}
+
+\subsubsection{Lớp trí tuệ nhân tạo}
+\label{subsubsec:lop-ai}
+
+Hệ thống áp dụng kiến trúc \textbf{Dual-AI} giải quyết hai bài toán bổ trợ lẫn nhau:
+
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Phân loại nguy cơ cháy có giám sát trên vi điều khiển (T04, T05):} Sử dụng thuật toán Hồi quy Logistic (Logistic Regression) kết hợp chuẩn hóa Z-score huấn luyện bằng thư viện \texttt{scikit-learn} \cite{ref_sklearn} trên 4 đặc trưng đầu vào $[x_0, x_1, x_2, x_3] = [\text{MQ2\_ADC}, \text{Temperature}, \text{Humidity}, \text{Flame}]$. Công cụ \texttt{train\_tinyml.py} tự động xuất toàn bộ tham số trung bình ($\mu_i$), độ lệch chuẩn ($\sigma_i$), trọng số ($w_i$) và hệ số tự do ($b$) sang tệp C header thuần túy \texttt{tinyml\_fire\_model.h}. Công thức suy luận xác suất cháy tại chỗ là:
+  \begin{equation}
+    P(\text{Fire} \mid \mathbf{x}) = \sigma(z) = \frac{1}{1 + e^{-z}}, \qquad z = b + \sum_{i=0}^{3} w_i \cdot \frac{x_i - \mu_i}{\sigma_i}
+    \label{eq:tinyml-logistic}
+  \end{equation}
+  Với chỉ 4 phép chuẩn hóa, 4 phép nhân--cộng và 1 hàm \texttt{expf()}, mô hình tiêu thụ khoảng $128\text{ byte}$ RAM, không cấp phát heap động và chạy ổn định ngay trong chu kỳ $100\text{ ms}$ của ESP32-S3.
+  \item \textbf{Phát hiện bất thường không giám sát trên Local Gateway (T09):} Sử dụng thuật toán \textbf{Isolation Forest} \cite{ref_iforest} (\texttt{n\_estimators=100}, \texttt{contamination=0.05}) phân tích vectơ 3 chiều $[\text{smoke}, \text{temperature}, \text{flame}]$. Điểm quyết định thô $d(\mathbf{x})$ từ hàm \texttt{decision\_function} được ánh xạ về chỉ số bất thường chuẩn hóa $\text{anomaly\_score} \in [0, 1]$ qua hàm sigmoid:
+  \begin{equation}
+    s(\mathbf{x}) = \frac{1}{1 + \exp(15 \cdot d(\mathbf{x}))}
+    \label{eq:iforest-score}
+  \end{equation}
+  Mô hình được huấn luyện trước bằng 100 mẫu nền an toàn (tránh trễ khởi động nguội), cập nhật động theo cửa sổ trượt 200 mẫu và chỉ bổ sung các mẫu được phân loại bình thường (\texttt{is\_anomaly == 0}) để ngăn ngừa hiện tượng đầu độc mô hình (baseline poisoning), huấn luyện lại sau mỗi 50 mẫu sạch.
+\end{enumerate}
+
+\subsubsection{Lớp ứng dụng và nền tảng CoreIOT}
+\label{subsubsec:lop-coreiot}
+
+Tầng ứng dụng sử dụng nền tảng ThingsBoard CE / CoreIOT \cite{ref_thingsboard} với hai chế độ linh hoạt: tự triển khai cục bộ qua Docker (\texttt{thingsboard/tb-postgres:latest}, cổng HTTP \texttt{9090}, MQTT \texttt{1883} -- tiêu chí \texttt{N07}) hoặc kết nối trực tiếp tới máy chủ đám mây \texttt{app.coreiot.io}. Các thành phần cốt lõi gồm:
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Thiết bị \& Hồ sơ Gateway (T15):} Thiết bị \path{FireAlarm_Gateway} được bật cờ \texttt{gateway = true} trong trường \texttt{additionalInfo} và xác thực bằng mã cố định \texttt{i2tchqq1390qcxhun4zr}.
+  \item \textbf{Dashboard công nghiệp (T11):} Tự động tạo qua REST API từ các template widget chuẩn của ThingsBoard 3.x (\path{radial_gauge_canvas_gauges}, \path{simple_gauge_justgage}, \path{cards.value_card}, \path{time_series_chart}, \path{round_switch}, \path{switch_control}) bố trí cân đối trên lưới 24 cột.
+  \item \textbf{Rule Chain và Notification (T12, T13):} Xử lý telemetry đầu vào để lưu trữ chuỗi thời gian, phân loại mức độ cháy, tự động tạo/xóa Alarm mức \texttt{CRITICAL}, điều phối lệnh RPC xuống thiết bị và đẩy thông điệp cảnh báo trực tiếp lên Widget 10 (\texttt{T13: Emergency Alarm Notification}) trên Dashboard.
+\end{itemize}
+
+\subsection{Ánh xạ tính năng -- yếu tố công nghệ}
+\label{subsec:anh-xa-tinh-nang}
+
+Bảng \ref{tab:anh-xa-tinh-nang} thể hiện mối quan hệ ánh xạ giữa danh sách tính năng đề xuất tại Chương \ref{sec:gioi-thieu} và các yếu tố công nghệ (\texttt{T04}, \texttt{T05}, \texttt{T08}--\texttt{T13}, \texttt{T15}) cùng tính năng nâng cao (\texttt{N06}, \texttt{N07}) đã đăng ký trong thang điểm BTL.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Ánh xạ tính năng với các yếu tố công nghệ}
+  \label{tab:anh-xa-tinh-nang}
+  {\small
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.22}
+  \begin{tabularx}{\textwidth}{|C{0.10\textwidth}|Y|C{0.15\textwidth}|L{0.30\textwidth}|}
+    \hline
+    \rowcolor{iotTableHead}
+    \textbf{Tính năng} & \textbf{Mô tả ngắn} & \textbf{Mã công nghệ} & \textbf{Thiết bị / Thành phần} \\
+    \hline
+    F01, F04 & Đọc cảm biến MQ-2, Flame, DHT11; hiển thị TFT và điều khiển Servo, Buzzer, LED tại chỗ & T04, T08 & End-Node YoloUNO (ESP32-S3) \\
+    \hline
+    F02 & Suy luận xác suất cháy trực tiếp trên ESP32-S3 bằng \path{tinyml_fire_model.h} & T04 & End-Node YoloUNO (\path{main.cpp}) \\
+    \hline
+    F03 & Tổng hợp dữ liệu, huấn luyện Logistic Regression và xuất C header & T05 & PC (\path{train_tinyml.py}) \\
+    \hline
+    F05 & Thu thập UART, đệm SQLite WAL, đồng bộ MQTT QoS 1 và phân phối lệnh RPC hai chiều & T08, T15 & Local Gateway PC (\path{LocalGateway.py}) \\
+    \hline
+    F06 & Phát hiện bất thường đa biến thời gian thực bằng Isolation Forest tại biên & T09 & Local Gateway PC (\path{isolation_detector.py}) \\
+    \hline
+    F07 & Giao diện SCADA Web cục bộ cổng 5050 kèm lưu vết sự kiện (Event Log) & T10, N06 & Local Gateway PC (\path{gateway_infrastructure.py}) \\
+    \hline
+    F08 & Tự triển khai máy chủ ThingsBoard CE + PostgreSQL trên Docker local & N07 & Docker Host (\path{deploy_thingsboard.py}) \\
+    \hline
+    F09 & Tự động cấp phát thiết bị Gateway và Dashboard công nghiệp 10 widget & T11, T15 & ThingsBoard / CoreIOT (\path{setup_thingsboard_dashboard.py}) \\
+    \hline
+    F10 & Rule Chain phân loại cháy, tạo/xóa Alarm, gửi Notification và kích hoạt RPC & T12, T13 & ThingsBoard / CoreIOT (\path{fire_alarm_rule_chain.json}) \\
+    \hline
+  \end{tabularx}
+  }
+\end{table}
+
+\subsection{Công nghệ mới (nếu có)}
+\label{subsec:cong-nghe-moi}
+
+Bên cạnh các yếu tố công nghệ trong danh sách quy định, hệ thống tích hợp ba kỹ thuật bổ trợ theo chuẩn công nghiệp nhằm nâng cao độ tin cậy và khả năng tái lập:
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{SQLite Write-Ahead Logging (WAL) \cite{ref_sqlite_wal}:} Thay vì ghi trực tiếp vào tệp cơ sở dữ liệu chính gây khóa đồng thời giữa luồng đọc UART và luồng \path{sync_worker}, chế độ WAL cho phép đọc và ghi diễn ra đồng thời an toàn, giảm thiểu độ trễ ghi đĩa và đảm bảo toàn vẹn dữ liệu ngay cả khi tiến trình dừng đột ngột.
+  \item \textbf{Hạ tầng mã hóa tự động (Infrastructure-as-Code) với Docker Compose và REST API Provisioning:} Toàn bộ quá trình khởi tạo máy chủ ThingsBoard (\path{docker-compose.yml}, \path{deploy_thingsboard.py}), đăng ký thiết bị, dựng 10 widget Dashboard (\path{setup_thingsboard_dashboard.py}) và nạp Rule Chain (\path{setup_rule_chain.py}) đều được tự động hóa bằng mã nguồn Python, loại bỏ hoàn toàn sai sót cấu hình thủ công khi triển khai trên máy mới.
+  \item \textbf{Kiểm thử tự động và đo hiệu năng vòng lặp (Automated Benchmark):} Tích hợp bộ kiểm thử đơn vị \texttt{unittest} cho cả Gateway (\path{test_system.py}) và Rule Chain (\path{test_rulechain_alert.py}), cùng công cụ đo độ trễ MQTT--RuleChain--RPC có độ phân giải micro giây (\path{time.perf_counter()}) tại \path{measure_latency.py}.
+\end{itemize}
+
+\subsection{Danh sách thiết bị phần cứng}
+\label{subsec:danh-sach-phan-cung}
+
+Bảng \ref{tab:danh-sach-phan-cung} liệt kê đầy đủ danh sách phần cứng thực tế được sử dụng để lắp ráp và thử nghiệm hệ thống.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Danh sách thiết bị phần cứng}
+  \label{tab:danh-sach-phan-cung}
+  {\small
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabularx}{\textwidth}{|C{0.06\textwidth}|L{0.25\textwidth}|L{0.18\textwidth}|C{0.06\textwidth}|Y|}
+    \hline
+    \rowcolor{iotTableHead}
+    \textbf{STT} & \textbf{Thiết bị / Linh kiện} & \textbf{Giao tiếp} & \textbf{SL} & \textbf{Vai trò trong hệ thống} \\
+    \hline
+    1 & OhStem YoloUNO (ESP32-S3) & USB-CDC UART, Wi-Fi, BLE, SPI, GPIO & 1 & Vi điều khiển trung tâm của End-Node: đọc cảm biến, suy luận TinyML (T04), điều khiển ngoại vi và giao tiếp Gateway \\
+    \hline
+    2 & Cảm biến khí gas/khói MQ-2 & Analog (ADC 12-bit) & 1 & Đo nồng độ khói và khí dễ cháy (dải ADC $0$--$4095$) \\
+    \hline
+    3 & Cảm biến lửa hồng ngoại (Flame Sensor) & Digital (Active-LOW) & 1 & Phát hiện bức xạ quang học từ ngọn lửa trần \\
+    \hline
+    4 & Cảm biến nhiệt độ -- độ ẩm DHT11 & Digital 1-Wire & 1 & Đo nhiệt độ ($^\circ\text{C}$) và độ ẩm tương đối ($\%$) của môi trường \\
+    \hline
+    5 & Màn hình màu TFT LCD ILI9341 ($320 \times 240$) & SPI (CS, DC, RST, MOSI, SCK) & 1 & Hiển thị trực tiếp trạng thái AN TOÀN / CẢNH BÁO CHÁY, thông số cảm biến và xác suất TinyML tại chỗ \\
+    \hline
+    6 & Động cơ Servo (SG90 / MG90S) & PWM (50 Hz, 1000--2000 $\mu$s) & 1 & Cơ cấu chấp hành mô phỏng đóng/mở cửa ngăn khói thoát hiểm \\
+    \hline
+    7 & Còi báo động (Buzzer) & Digital / Tone PWM (500 Hz) & 1 & Phát âm thanh báo động khi xảy ra cháy hoặc cưỡng bức thủ công \\
+    \hline
+    8 & Đèn LED cảnh báo & Digital GPIO & 1 & Chỉ thị cảnh báo cháy bằng tín hiệu quang tại trạm \\
+    \hline
+    9 & Máy tính cá nhân (PC Windows) & USB Type-C, TCP/IP & 1 & Chạy Local IoT Gateway (T08--T10, T15, N06), huấn luyện TinyML (T05) và lưu trữ ThingsBoard Docker (N07) \\
+    \hline
+  \end{tabularx}
+  }
+\end{table}

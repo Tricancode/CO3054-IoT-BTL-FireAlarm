@@ -1,0 +1,154 @@
+% !TeX root = ../report.tex
+
+\section{ĐO ĐẠC VÀ THỬ NGHIỆM HỆ THỐNG}
+\label{sec:do-dac-thu-nghiem}
+
+\subsection{Môi trường và kịch bản thử nghiệm}
+\label{subsec:moi-truong-kich-ban}
+
+Toàn bộ quá trình đo đạc và kiểm chứng hệ thống được thực hiện trong môi trường phòng thí nghiệm với cấu hình thiết bị và mạng như sau:
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Phần cứng End-Node:} 01 bo mạch OhStem YoloUNO (ESP32-S3) lắp hoàn chỉnh cảm biến MQ-2 (\texttt{A0}), cảm biến lửa (\texttt{D6}), DHT11 (\texttt{D7}), màn hình TFT ILI9341 (SPI), động cơ Servo (\texttt{D2}), Buzzer (\texttt{D3}) và LED (\texttt{D8}), kết nối trực tiếp tới PC qua cáp USB Type-C tại cổng \texttt{COM4} với tốc độ \texttt{115200} bps.
+  \item \textbf{Máy trạm Local Gateway \& ThingsBoard Server:} PC chạy hệ điều hành Windows, Python 3 và Docker Desktop vận hành container \texttt{thingsboard-local} (\path{thingsboard/tb-postgres:latest}) trên địa chỉ \texttt{127.0.0.1} (HTTP cổng \texttt{9090}, MQTT cổng \texttt{1883}), đồng thời hỗ trợ kiểm tra kết nối đám mây \path{app.coreiot.io:1883}.
+\end{itemize}
+
+Nhóm thiết kế và thực thi năm kịch bản thử nghiệm tương ứng với các mục tiêu đã đặt ra ở Mục \ref{subsec:muc-tieu-de-tai}:
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Kịch bản 1 -- Kiểm thử đơn vị hạ tầng Gateway (\path{02_Local_Gateway/test_system.py}):} Tự động kiểm tra vòng đời lưu đệm SQLite WAL (chèn, truy vấn FIFO, đánh dấu đồng bộ), các điểm cuối HTTP REST (\path{GET /}, \path{GET /api/telemetry}, \path{POST /api/control}), giả lập cổng Serial UART (\path{HardwareSerialAdapter}), suy luận mô hình \path{IsolationDetector} giữa trạng thái thường và đột biến cháy, lược đồ tệp \path{thingsboard_dashboard.json} và vòng lặp UDP.
+  \item \textbf{Kịch bản 2 -- Kiểm thử logic Rule Chain (\path{03_CoreIOT_Config/scripts/test_rulechain_alert.py}):} Thực thi 6 bài kiểm thử đơn vị (\texttt{unittest}) xác nhận tính toàn vẹn cấu trúc 5 nút và 4 liên kết của \path{fire_alarm_rule_chain.json}, các giá trị biên ($T = 50.0^\circ\text{C}$, $\text{smoke\_level} = 400$), ngưỡng vượt nhiệt/khói, khả năng ép kiểu cờ \path{tinyml_fire} (\texttt{True}, \texttt{1}, \texttt{"1"}, \texttt{"true"}) và chuyển trạng thái xóa báo động.
+  \item \textbf{Kịch bản 3 -- Đo độ trễ vòng lặp đầu--cuối E2E (\path{03_CoreIOT_Config/scripts/measure_latency.py}):} Với mỗi lượt đo, kịch bản gửi gói tin \texttt{SAFE} để đặt lại trạng thái báo động và chờ thời gian hồi phục (\texttt{cooldown = 2.5 s}), sau đó phát gói tin báo cháy \texttt{CRITICAL} ($\text{smoke} = 85.5$, $T = 62.0^\circ\text{C}$, $\text{flame} = 1$, $\text{is\_anomaly} = 1$, $\text{anomaly\_score} = 0.95$) qua MQTT QoS 1. Sử dụng bộ đếm độ phân giải cao \path{time.perf_counter()} để ghi nhận thời điểm nhận gói \texttt{PUBACK}, thời điểm nhận lệnh RPC đầu tiên và từng lệnh \texttt{setServo(90)}, \texttt{setBuzzer(1)}, \texttt{setLed(1)}, rồi xuất kết quả thô sang \path{04_Docs_Media/experiments/latency_results.csv}.
+  \item \textbf{Kịch bản 4 -- Kích hoạt báo cháy phần cứng thực tế:} Tạo nguồn lửa bằng bật lửa trước đầu cảm biến Flame và tạo khói trước cảm biến MQ-2 để quan sát phản ứng tức thời của màn hình TFT, mô hình TinyML, còi Buzzer, đèn LED, động cơ Servo, Isolation Forest và Widget Notification T13.
+  \item \textbf{Kịch bản 5 -- Mô phỏng sự cố mất mạng và đồng bộ bù (Offline Store \& Forward):} Tạm dừng container broker bằng lệnh \texttt{docker pause thingsboard-local} khi hệ thống đang lấy mẫu liên tục để kiểm chứng việc tăng chỉ số \texttt{Buffer} trên SCADA cổng 5050 và lưu bản ghi vào \path{gateway_hardware_buffer.db}, sau đó chạy \texttt{docker unpause thingsboard-local} để xác minh quá trình đồng bộ bù toàn bộ dữ liệu lên ThingsBoard.
+\end{enumerate}
+
+\subsection{Kết quả đo đạc}
+\label{subsec:ket-qua-do-dac}
+
+Số liệu đo độ trễ vòng lặp đầu--cuối (Telemetry MQTT QoS 1 $\rightarrow$ ThingsBoard Rule Chain $\rightarrow$ 3 lệnh RPC \texttt{setServo}, \texttt{setBuzzer}, \texttt{setLed}) được trích xuất trực tiếp từ tệp thực nghiệm \texttt{04\_Docs\_Media/experiments/latency\_results.csv} (2 lượt đo thực tế trên broker cục bộ \texttt{127.0.0.1:1883}, cả hai lượt đều đạt trạng thái \texttt{PASS\_ALL\_3} với đủ $3/3$ lệnh RPC), kết hợp với kết quả đánh giá mô hình TinyML từ \texttt{train\_tinyml.py} và kiểm thử lưu đệm SQLite WAL. Bảng \ref{tab:ket-qua-do-dac} tổng hợp đầy đủ các chỉ số đo đạc.
+
+\begin{table}[H]
+  \centering
+  \caption{Tổng hợp kết quả đo đạc thực nghiệm của hệ thống}
+  \label{tab:ket-qua-do-dac}
+  \renewcommand{\arraystretch}{1.28}
+  \begin{tabularx}{\textwidth}{|C{0.06\textwidth}|Y|C{0.11\textwidth}|C{0.13\textwidth}|C{0.17\textwidth}|C{0.13\textwidth}|}
+    \hline
+    \rowcolor{iotTableHead}
+    \textbf{STT} & \textbf{Chỉ số đo} & \textbf{Số lần đo} & \textbf{Trung bình} & \textbf{Min / Max} & \textbf{Mục tiêu} \\
+    \hline
+    1 & Độ trễ xác nhận MQTT PUBACK QoS 1 (ms) & 2 & 1.99 & 1.58 / 2.39 & $< 50$ \\
+    \hline
+    2 & Độ trễ nhận lệnh RPC đầu tiên từ Rule Chain (ms) & 2 & 100.52 & 88.01 / 113.02 & $< 500$ \\
+    \hline
+    3 & Độ trễ vòng lặp lệnh \texttt{setServo(90)} (ms) & 2 & 100.64 & 88.01 / 113.26 & $< 500$ \\
+    \hline
+    4 & Độ trễ vòng lặp lệnh \texttt{setBuzzer(1)} (ms) & 2 & 100.76 & 88.50 / 113.02 & $< 500$ \\
+    \hline
+    5 & Độ trễ vòng lặp lệnh \texttt{setLed(1)} (ms) & 2 & 100.89 & 88.35 / 113.43 & $< 500$ \\
+    \hline
+    6 & Độ trễ hoàn tất đủ cả 3 lệnh RPC (ms) & 2 & 100.97 & 88.50 / 113.43 & $< 500$ \\
+    \hline
+    7 & Tỉ lệ nhận đủ 3/3 lệnh RPC sau báo cháy (\%) & 2 & 100.0 & 100.0 / 100.0 & $100$ \\
+    \hline
+    8 & Độ chính xác mô hình TinyML trên tập test 500 mẫu (\%) & 1 tập & 100.00 & -- & $> 95$ \\
+    \hline
+    9 & Tỉ lệ mất gói khi lưu đệm SQLite WAL cục bộ (\%) & Kiểm thử & 0.0 & 0.0 / 0.0 & $0$ \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+Biểu đồ so sánh trực quan các thành phần độ trễ ở Lượt 1, Lượt 2 và giá trị trung bình từ \texttt{latency\_results.csv} được minh họa tại Hình \ref{fig:bieu-do-do-dac}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[scale=0.92, every node/.style={font=\scriptsize}]
+    % Axes
+    \draw[->, >=stealth, thick] (0,0) -- (12.8,0) node[right] {Chỉ số};
+    \draw[->, >=stealth, thick] (0,0) -- (0,5.4) node[above] {Độ trễ (ms)};
+
+    % Horizontal grid lines (scale: 1 cm = 25 ms, max 125 ms = 5.0 cm)
+    \foreach \y/\lbl in {1/25, 2/50, 3/75, 4/100, 5/125} {
+      \draw[gray!35, dashed] (0,\y) -- (12.4,\y);
+      \node[left] at (0,\y) {\lbl};
+    }
+    \node[left] at (0,0) {0};
+
+    % Helper bar groups: (x_base, h1, h2, havg, label, v1, v2)
+    % 1. PUBACK: 1.58, 2.39, 1.99 -> /25 = 0.063, 0.096, 0.080
+    \fill[iotPrimary]   (0.6,0) rectangle (1.05,0.08);
+    \fill[iotSecondary] (1.1,0) rectangle (1.55,0.10);
+    \fill[iotAccent]    (1.6,0) rectangle (2.05,0.09);
+    \node[above, font=\tiny] at (1.32,0.14) {1.58 / 2.39};
+    \node[below, align=center] at (1.32,-0.15) {MQTT\\PUBACK};
+
+    % 2. First RPC: 88.01, 113.02, 100.52 -> /25 = 3.52, 4.52, 4.02
+    \fill[iotPrimary]   (2.7,0) rectangle (3.15,3.52);
+    \fill[iotSecondary] (3.2,0) rectangle (3.65,4.52);
+    \fill[iotAccent]    (3.7,0) rectangle (4.15,4.02);
+    \node[above, font=\tiny] at (2.92,3.52) {88.0};
+    \node[above, font=\tiny] at (3.42,4.52) {113.0};
+    \node[above, font=\tiny] at (3.92,4.02) {100.5};
+    \node[below, align=center] at (3.42,-0.15) {First\\RPC};
+
+    % 3. Servo RPC: 88.01, 113.26, 100.64 -> /25 = 3.52, 4.53, 4.03
+    \fill[iotPrimary]   (4.8,0) rectangle (5.25,3.52);
+    \fill[iotSecondary] (5.3,0) rectangle (5.75,4.53);
+    \fill[iotAccent]    (5.8,0) rectangle (6.25,4.03);
+    \node[above, font=\tiny] at (5.02,3.52) {88.0};
+    \node[above, font=\tiny] at (5.52,4.53) {113.3};
+    \node[above, font=\tiny] at (6.02,4.03) {100.6};
+    \node[below, align=center] at (5.52,-0.15) {Servo\\RPC};
+
+    % 4. Buzzer RPC: 88.50, 113.02, 100.76 -> /25 = 3.54, 4.52, 4.03
+    \fill[iotPrimary]   (6.9,0) rectangle (7.35,3.54);
+    \fill[iotSecondary] (7.4,0) rectangle (7.85,4.52);
+    \fill[iotAccent]    (7.9,0) rectangle (8.35,4.03);
+    \node[above, font=\tiny] at (7.12,3.54) {88.5};
+    \node[above, font=\tiny] at (7.62,4.52) {113.0};
+    \node[above, font=\tiny] at (8.12,4.03) {100.8};
+    \node[below, align=center] at (7.62,-0.15) {Buzzer\\RPC};
+
+    % 5. LED RPC: 88.35, 113.43, 100.89 -> /25 = 3.53, 4.54, 4.04
+    \fill[iotPrimary]   (9.0,0) rectangle (9.45,3.53);
+    \fill[iotSecondary] (9.5,0) rectangle (9.95,4.54);
+    \fill[iotAccent]    (10.0,0) rectangle (10.45,4.04);
+    \node[above, font=\tiny] at (9.22,3.53) {88.4};
+    \node[above, font=\tiny] at (9.72,4.54) {113.4};
+    \node[above, font=\tiny] at (10.22,4.04) {100.9};
+    \node[below, align=center] at (9.72,-0.15) {LED\\RPC};
+
+    % 6. All 3 RPCs: 88.50, 113.43, 100.97 -> /25 = 3.54, 4.54, 4.04
+    \fill[iotPrimary]   (11.0,0) rectangle (11.45,3.54);
+    \fill[iotSecondary] (11.5,0) rectangle (11.95,4.54);
+    \fill[iotAccent]    (12.0,0) rectangle (12.45,4.04);
+    \node[above, font=\tiny] at (11.22,3.54) {88.5};
+    \node[above, font=\tiny] at (11.72,4.54) {113.4};
+    \node[above, font=\tiny] at (12.22,4.04) {101.0};
+    \node[below, align=center] at (11.72,-0.15) {Đủ cả\\3 RPC};
+
+    % Legend
+    \fill[iotPrimary]   (1.5,5.3) rectangle (1.9,5.55); \node[right] at (1.95,5.42) {Lượt 1 (Trial 1)};
+    \fill[iotSecondary] (4.8,5.3) rectangle (5.2,5.55); \node[right] at (5.25,5.42) {Lượt 2 (Trial 2)};
+    \fill[iotAccent]    (8.1,5.3) rectangle (8.5,5.55); \node[right] at (8.55,5.42) {Trung bình (Avg)};
+  \end{tikzpicture}
+  \caption{Biểu đồ độ trễ vòng lặp đầu--cuối MQTT $\rightarrow$ ThingsBoard Rule Chain $\rightarrow$ 3 lệnh RPC từ \texttt{latency\_results.csv}}
+  \label{fig:bieu-do-do-dac}
+\end{figure}
+
+\subsection{Đánh giá}
+\label{subsec:danh-gia}
+
+So sánh số liệu đo thực nghiệm với các mục tiêu định lượng tại Mục \ref{subsec:muc-tieu-de-tai} cho thấy toàn bộ các chỉ tiêu cốt lõi đều đạt và vượt yêu cầu:
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Hiệu năng thời gian thực vượt mục tiêu:} Độ trễ xác nhận MQTT QoS 1 trung bình chỉ $1.99\text{ ms}$, và thời gian hoàn tất toàn bộ vòng lặp từ lúc gửi gói cháy cho đến khi nhận đủ cả 3 lệnh điều khiển \texttt{setServo}, \texttt{setBuzzer}, \texttt{setLed} từ ThingsBoard Rule Chain trung bình đạt $100.97\text{ ms}$ (tối đa $113.43\text{ ms}$), thấp hơn gần 5 lần so với ngưỡng mục tiêu $500\text{ ms}$. Độ chênh lệch giữa lệnh RPC đầu tiên và lệnh RPC thứ ba chỉ trong khoảng $0.41$--$0.49\text{ ms}$, chứng tỏ ThingsBoard Rule Engine phát song song các lệnh chấp hành rất đồng đều.
+  \item \textbf{Độ tin cậy của kiến trúc Dual-AI:} Mô hình TinyML đạt $100.00\%$ trên tập kiểm thử 500 mẫu và vận hành ổn định trong khoảng $128\text{ byte}$ RAM trên ESP32-S3; đồng thời Isolation Forest trên Local Gateway thích nghi liên tục theo cửa sổ trượt 200 mẫu sạch mà không bị lệch nền khi thử nghiệm đốt lửa.
+\end{itemize}
+
+Trong quá trình tích hợp và thử nghiệm thực tế, nhóm đã phát hiện và xử lý triệt để năm vấn đề kỹ thuật sau:
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Thống nhất thang đo cảm biến MQ-2:} Ban đầu cấu hình Dashboard và bộ phát hiện bất thường dùng đơn vị \texttt{ppm} trong khi chân ADC 12-bit của ESP32-S3 đọc giá trị thô $0$--$4095$. Nhóm đã đồng bộ lại thang đo về ADC thô ($0$--$4095$) với ngưỡng báo động thống nhất $1800$ ở cả firmware, \texttt{IsolationDetector}, SCADA 5050 và ThingsBoard Radial Gauge.
+  \item \textbf{Hiện tượng dao động trạng thái quanh ngưỡng:} Khi nồng độ khói hoặc nhiệt độ nằm sát ngưỡng, màn hình TFT và còi báo động bật/tắt liên tục. Nhóm khắc phục bằng cơ chế trễ (hysteresis): MQ-2 bật ở $1800$, tắt ở $1650$; DHT11 bật ở $35.0^\circ\text{C}$, tắt ở $34.0^\circ\text{C}$.
+  \item \textbf{Hành trình đóng/mở cánh cửa Servo bị thiếu một nửa:} Do cơ cấu liên kết cơ khí giữa trục Servo và cánh cửa mô hình, lệnh góc $90^\circ$ chỉ xoay cửa một nửa hành trình. Firmware bổ sung hệ số nhân \texttt{SERVO\_COMMAND\_SCALE = 2} để tự động quy đổi góc logic $0^\circ$--$90^\circ$ sang góc vật lý $0^\circ$--$180^\circ$.
+  \item \textbf{Xung đột giữa lệnh RPC tự động từ Cloud và trạng thái thực tế tại chỗ:} Để tránh tình huống lệnh RPC trễ hoặc cấu hình ngưỡng lệch trên Cloud tự kích hoạt còi/cửa khi phòng đang an toàn, hàm \texttt{rpc\_command()} trong \texttt{LocalGateway.py} tách riêng nhóm lệnh thủ công (\texttt{setAlarmOverride}, \texttt{manualSetBuzzer}, \texttt{manualSetLed}) với lệnh tự động (\texttt{setServo}, \texttt{setBuzzer}, \texttt{setLed}) và chỉ cho phép lệnh tự động bật cơ cấu chấp hành khi cảm biến cục bộ cũng đang báo cháy.
+  \item \textbf{Lỗi \texttt{404 Not Found} khi tự động nạp Dashboard ngay sau khi bật Docker:} Container \texttt{thingsboard-local} cần $45$--$60\text{ s}$ để Spring Boot và PostgreSQL khởi tạo xong. Nhóm bổ sung hàm \texttt{wait\_for\_thingsboard(timeout=180)} thăm dò điểm cuối \texttt{/api/auth/login} trong \texttt{setup\_thingsboard\_dashboard.py} giúp quy trình cấp phát hoàn toàn ổn định trên máy mới.
+\end{enumerate}

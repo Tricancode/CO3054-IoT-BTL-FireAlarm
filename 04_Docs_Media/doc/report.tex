@@ -1,0 +1,221 @@
+% !TeX program = pdflatex
+\newcommand{\DoNotLoadEpstopdf}{} % Template assets use PNG.
+\documentclass[twoside,final]{hcmut-report}
+
+% ===== THONG TIN BAO CAO: chinh sua tai day =====
+\deptname{KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH}
+\coursename{PHÁT TRIỂN ỨNG DỤNG IoT (CO3054)}
+\reporttype{BÁO CÁO BÀI TẬP LỚN}
+\title{HỆ THỐNG BÁO CHÁY IoT \\ (IoT FIRE ALARM SYSTEM)}
+\advisor{TS. Lê Trọng Nhân}
+\newcommand{\classid}{[Mã lớp]}
+\newcommand{\groupid}{[Mã nhóm]}
+\newcommand{\membertable}{%
+  1 & Nguyễn Tiến Minh Trí & 2413648 & tri.nguyen2606bku@hcmut.edu.vn \\ \hline
+  2 & Phạm Nghĩa Trung     & 2413713 & trung.phamnghia@hcmut.edu.vn \\ \hline
+  3 & Đào Nhật Toàn        & 2413523 & toan.daonhat@hcmut.edu.vn \\ \hline
+}
+\reportplace{TP. Hồ Chí Minh}
+\reporttime{tháng [\dots] năm 2026}
+
+% ===== DINH DANG GOC & BO SUNG CAN THIET =====
+\usepackage{codespace}
+\usepackage{gensymb,textcomp}
+\usepackage{array,longtable,multicol,multirow,siunitx,tabularx}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{caption,float}
+\usepackage[export]{adjustbox}
+\usepackage[nameinlink]{cleveref}
+\usepackage{tikz}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\hypersetup{hypertexnames=false}
+
+% ===== CHUAN HOA TIENG VIET & DINH DANG THEO FILE MAU WORD =====
+% Su dung trich dan kieu IEEE dang [1], [2] thay vi chi so tren cua natbib
+\setcitestyle{numbers,square,comma}
+
+% Ghi de nhan tieng Anh cua babel (duoc nap trong hcmut-report.cls) sang tieng Viet
+\addto\captionsenglish{%
+  \renewcommand{\contentsname}{MỤC LỤC}%
+  \renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}%
+  \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}%
+  \renewcommand{\figurename}{Hình}%
+  \renewcommand{\tablename}{Bảng}%
+  \renewcommand{\refname}{TÀI LIỆU THAM KHẢO}%
+}
+\renewcommand{\lstlistlistingname}{DANH MỤC ĐOẠN MÃ}
+\renewcommand{\lstlistingname}{Đoạn mã}
+
+% Mau sac theo file mau Word
+\definecolor{iotPrimary}{HTML}{064E5B}
+\definecolor{iotSecondary}{HTML}{038192}
+\definecolor{iotAccent}{HTML}{C0504D}
+\definecolor{iotTableHead}{HTML}{E6F2F4}
+\definecolor{iotGroupRow}{HTML}{F2F7F8}
+
+% Dinh dang tieu de Chuong / Muc / Tieu muc (hcmut-report dung class article)
+\titleformat{\section}
+  {\normalfont\fontsize{15}{19}\selectfont\bfseries\raggedright\color{iotPrimary}}
+  {CHƯƠNG \thesection.\ }{0pt}{}
+\titleformat{name=\section,numberless}
+  {\normalfont\fontsize{15}{19}\selectfont\bfseries\raggedright\color{iotPrimary}}
+  {}{0pt}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\raggedright\color{iotPrimary}}
+  {\thesubsection.\ }{0pt}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\raggedright}
+  {\thesubsubsection.\ }{0pt}{}
+
+% Dinh dang Muc luc khop CHƯƠNG x. ... cho cac chuong va khong co CHƯƠNG cho muc khong danh so
+\titlecontents{section}[0em]
+  {\addvspace{4pt}\bfseries}
+  {CHƯƠNG \thecontentslabel.\ }
+  {}
+  {\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{subsection}[2.0em]
+  {\addvspace{1pt}}
+  {\thecontentslabel.\ }
+  {}
+  {\titlerule*[0.6pc]{.}\contentspage}
+\titlecontents{subsubsection}[4.2em]
+  {}
+  {\thecontentslabel.\ }
+  {}
+  {\titlerule*[0.6pc]{.}\contentspage}
+
+% Macro ho tro phan noi dung cho dien va khung chen hinh
+\newcommand{\placeholder}[1]{\textcolor{iotAccent}{[#1]}}
+\newcommand{\figureplaceholder}[1]{%
+  \begin{tikzpicture}
+    \node[draw=gray!70, dashed, rounded corners=3pt, fill=gray!5,
+          minimum width=0.88\textwidth, minimum height=4.2cm,
+          align=center, text=iotAccent] {#1};
+  \end{tikzpicture}%
+}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Cau hinh Header & Footer tieng Viet theo file mau Word (giu logo HCMUT)
+\makeatletter
+\renewcommand{\@upperuniname}{ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH}
+\renewcommand{\@uniname}{TRƯỜNG ĐẠI HỌC BÁCH KHOA}
+
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\if@twoside
+  \fancyhead[LE,RO]{\small\textit{Báo cáo BTL môn IoT -- Nhóm \groupid}}
+  \fancyhead[LO,RE]{\small\textbf{Trường ĐH Bách Khoa -- ĐHQG-HCM}}
+\else
+  \fancyhead[L]{\small\textbf{Trường ĐH Bách Khoa -- ĐHQG-HCM}}
+  \fancyhead[R]{\small\textit{Báo cáo BTL môn IoT -- Nhóm \groupid}}
+\fi
+\fancyfoot[C]{\small Trang \thepage}
+
+% Trang bia dong bo 100% voi BaoCaoMau_BaiTapLon_IoT.docx
+\renewcommand{\coverpage}{%
+  \begin{titlepage}
+    \thispagestyle{empty}
+    \vspace*{-1.2cm}
+    \begin{center}
+      {\bfseries\large \@upperuniname}\\[2pt]
+      {\bfseries\large \@uniname}\\[2pt]
+      {\bfseries\large \@deptname}
+
+      \vspace{0.8cm}
+      \includegraphics[scale=0.36]{graphics/hcmut.png}
+
+      \vspace{0.8cm}
+      {\bfseries\fontsize{18}{22}\selectfont\color{iotPrimary} \@reporttype}\\[6pt]
+      {\bfseries\fontsize{14}{18}\selectfont\color{iotSecondary} MÔN HỌC: \@coursename}
+
+      \vspace{0.7cm}
+      \rule{0.88\linewidth}{0.8pt}\\[8pt]
+      {\bfseries\large ĐỀ TÀI}\\[6pt]
+      {\bfseries\fontsize{16}{21}\selectfont\color{iotAccent}\@title}\\[8pt]
+      \rule{0.88\linewidth}{0.8pt}
+
+      \vspace{0.8cm}
+      {\normalsize \textbf{Giảng viên hướng dẫn:} \@advisor}\\[6pt]
+      {\normalsize \textbf{Lớp:} \textcolor{iotAccent}{\classid}\qquad -- \qquad \textbf{Nhóm:} \textcolor{iotAccent}{\groupid}}
+
+      \vspace{0.6cm}
+      \renewcommand{\arraystretch}{1.3}
+      \begin{tabular}{|c|l|c|l|}
+        \hline
+        \rowcolor{iotTableHead}
+        \textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Email} \\
+        \hline
+        \membertable
+      \end{tabular}
+
+      \vfill
+      {\bfseries\normalsize \@reportplace, \@reporttime}
+    \end{center}
+  \end{titlepage}
+  \cleardoublepage
+}
+\makeatother
+
+\begin{document}
+% ===== TRANG BIA =====
+\coverpage
+
+% ===== CAC MUC DAU BAO CAO (DANH SO LA MA) =====
+\pagenumbering{roman}
+\pagestyle{fancy}
+
+\input{chapters/frontmatter.tex}
+\clearpage
+
+% ===== MUC LUC & CAC DANH MUC =====
+\phantomsection
+\tableofcontents
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{section}{DANH MỤC HÌNH VẼ}
+\listoffigures
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{section}{DANH MỤC BẢNG BIỂU}
+\listoftables
+\clearpage
+
+\phantomsection
+\addcontentsline{toc}{section}{DANH MỤC ĐOẠN MÃ}
+\lstlistoflistings
+\clearpage
+
+\input{chapters/abbreviations.tex}
+\clearpage
+
+% ===== NOI DUNG CHINH (DANH SO A RAP) =====
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+\input{chapters/chapter1.tex}
+\clearpage
+\input{chapters/chapter2.tex}
+\clearpage
+\input{chapters/chapter3.tex}
+\clearpage
+\input{chapters/chapter4.tex}
+\clearpage
+\input{chapters/chapter5.tex}
+\clearpage
+\input{chapters/chapter6.tex}
+\clearpage
+
+% ===== TAI LIEU THAM KHAO & PHU LUC =====
+\input{refs/references.tex}
+\clearpage
+\input{chapters/appendix.tex}
+
+\end{document}

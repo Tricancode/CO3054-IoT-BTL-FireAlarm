@@ -1,0 +1,66 @@
+% !TeX root = ../report.tex
+
+\section{KẾT LUẬN VÀ HƯỚNG MỞ RỘNG}
+\label{sec:ket-luan-mo-rong}
+
+\subsection{Kết quả đạt được}
+\label{subsec:ket-qua-dat-duoc}
+
+Nhóm đã thiết kế, hiện thực và kiểm chứng thành công hệ thống báo cháy IoT đa tầng đáp ứng đầy đủ các tính năng đề xuất \texttt{F01}--\texttt{F10}. Bảng \ref{tab:tong-ket-tinh-nang} tổng hợp mức độ hoàn thành của từng tính năng so với thiết kế ở Chương \ref{sec:gioi-thieu}.
+
+\begin{table}[H]
+  \centering
+  \caption{Tổng kết trạng thái hoàn thành các tính năng của hệ thống}
+  \label{tab:tong-ket-tinh-nang}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabularx}{\textwidth}{|C{0.08\textwidth}|Y|C{0.18\textwidth}|C{0.18\textwidth}|}
+    \hline
+    \rowcolor{iotTableHead}
+    \textbf{Mã} & \textbf{Tính năng} & \textbf{Tiêu chí BTL} & \textbf{Trạng thái} \\
+    \hline
+    F01 & Đọc đa cảm biến MQ-2, Flame, DHT11 có hysteresis và hiển thị TFT ILI9341 & T04, T08 & Hoàn thành \\
+    \hline
+    F02 & Suy luận xác suất cháy TinyML trực tiếp trên ESP32-S3 (\texttt{tinyml\_fire\_model.h}) & T04 & Hoàn thành \\
+    \hline
+    F03 & Công cụ tổng hợp dữ liệu, huấn luyện và tự động xuất C header (\texttt{train\_tinyml.py}) & T05 & Hoàn thành \\
+    \hline
+    F04 & Điều khiển cơ cấu chấp hành Servo, Buzzer, LED tự động và ghi đè an toàn & T08 & Hoàn thành \\
+    \hline
+    F05 & Local Gateway UART $\leftrightarrow$ MQTT QoS 1, SQLite WAL đệm ngoại tuyến và đồng bộ FIFO & T08, T15 & Hoàn thành \\
+    \hline
+    F06 & Phát hiện bất thường đa biến tại biên bằng Isolation Forest trên Gateway & T09 & Hoàn thành \\
+    \hline
+    F07 & Giao diện SCADA Web cục bộ cổng 5050 kèm bảng lưu vết sự kiện thời gian thực & T10, N06 & Hoàn thành \\
+    \hline
+    F08 & Tự triển khai máy chủ ThingsBoard CE + PostgreSQL bằng Docker Compose & N07 & Hoàn thành \\
+    \hline
+    F09 & Tự động cấp phát thiết bị Gateway và Industrial Dashboard 10 widget & T11, T15 & Hoàn thành \\
+    \hline
+    F10 & Rule Chain phân loại mức cháy, quản lý Alarm, đẩy Notification và điều phối RPC & T12, T13 & Hoàn thành \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+Về mặt đánh giá theo thang điểm môn học, hệ thống tích lũy \textbf{9.5 điểm yếu tố công nghệ} (đạt trần tối đa \textbf{8.0/8.0 điểm} với các tiêu chí \texttt{T04, T05, T08, T09, T10, T11, T12, T13, T15}) và \textbf{2.0 điểm tính năng nâng cao} (đạt trần tối đa \textbf{1.0/1.0 điểm} với \texttt{N06, N07}), tất cả đều có mã nguồn kiểm chứng và hình ảnh minh chứng thực tế.
+
+\subsection{Hạn chế}
+\label{subsec:han-che}
+
+Bên cạnh các kết quả đạt được, hệ thống vẫn tồn tại một số hạn chế kỹ thuật cần nhìn nhận trung thực:
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Dữ liệu huấn luyện TinyML tổng hợp:} Tập 2.500 mẫu dùng trong \texttt{train\_tinyml.py} được sinh theo phân bố đặc tính vật lý cảm biến trong điều kiện phòng thí nghiệm. Độ chính xác $100.00\%$ phản ánh tốt sự phân tách giữa các trạng thái trên miền tổng hợp nhưng cần được hiệu chỉnh bổ sung bằng dữ liệu thu thập dài ngày từ nhiều môi trường nhiễu thực tế (nhà bếp, xưởng có bụi/hơi ẩm cao).
+  \item \textbf{Quy mô mạng và kết nối có dây tại chặng End-Node:} Hệ thống thực tế hiện vận hành với 01 node phần cứng YoloUNO nối dây trực tiếp tới PC qua cáp USB-CDC nên bị giới hạn về khoảng cách lắp đặt so với mạng cảm biến không dây đa điểm.
+  \item \textbf{Số lượng mẫu đo thực nghiệm độ trễ còn ít và thực hiện cục bộ:} Tệp kết quả đo \texttt{latency\_results.csv} hiện ghi nhận 2 lượt đo hoàn chỉnh trên broker Docker nội bộ (\texttt{127.0.0.1:1883}); khi triển khai qua Internet công cộng tới \texttt{app.coreiot.io}, độ trễ vòng lặp sẽ chịu thêm thành phần trễ mạng diện rộng (WAN).
+  \item \textbf{Chưa có nguồn dự phòng và OTA:} Bo mạch End-Node chưa trang bị mạch pin dự phòng (UPS) khi mất điện lưới lúc hỏa hoạn, đồng thời chưa tích hợp cập nhật firmware từ xa OTA (\texttt{T14}) và chưa kích hoạt thư viện đồ họa LVGL (\texttt{N03}) dù đã chuẩn bị tệp \texttt{lv\_conf.h}.
+\end{enumerate}
+
+\subsection{Hướng mở rộng}
+\label{subsec:huong-mo-rong}
+
+Để phát triển hệ thống tiến gần hơn đến khả năng ứng dụng thực tế tại tòa nhà hoặc phòng thí nghiệm, nhóm đề xuất bốn hướng mở rộng cụ thể:
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+  \item \textbf{Mở rộng mạng cảm biến đa vùng không dây:} Bổ sung nhiều End-Node ESP32-S3 đặt tại các phòng khác nhau giao tiếp về Gateway thông qua giao thức không dây tầm ngắn \textbf{ESP-NOW} (\texttt{T06}) hoặc \textbf{BLE} (\texttt{T03}), khai thác triệt để chế độ Gateway API (\texttt{--gateway-api}) đã được tích hợp sẵn trong \texttt{LocalGateway.py}.
+  \item \textbf{Thu thập dữ liệu thực địa và nâng cấp TinyML:} Ghi nhật ký cảm biến thực tế qua cơ sở dữ liệu SQLite trong nhiều điều kiện môi trường (nấu ăn, hơi nước, khói hương, cháy thực nghiệm) để tái huấn luyện mô hình mạng nơ-ron nhẹ (MLP/Quantized TensorFlow Lite Micro) nhằm giảm tối đa báo động giả.
+  \item \textbf{Tích hợp cập nhật firmware OTA và giao diện LVGL:} Kích hoạt cơ chế OTA qua ThingsBoard (\texttt{T14}) cho phép nâng cấp hàng loạt node từ xa mà không cần tháo mạch, đồng thời chuyển màn hình TFT ILI9341 sang sử dụng giao diện đồ họa LVGL (\texttt{N03}) dựa trên tệp cấu hình \texttt{include/lv\_conf.h} có sẵn.
+  \item \textbf{Nâng cao độ sẵn sàng phần cứng:} Trang bị nguồn pin sạc dự phòng 18650 có mạch chuyển đổi tự động khi mất điện lưới và tích hợp cảm biến công nghiệp có hiệu chuẩn (như cảm biến khói quang học, cảm biến CO/nhiệt độ SHT3x).
+\end{itemize}

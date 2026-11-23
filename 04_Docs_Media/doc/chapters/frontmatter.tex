@@ -1,0 +1,169 @@
+% !TeX root = ../report.tex
+
+% =====================================================================
+% THÔNG TIN NỘP BÀI
+% =====================================================================
+\phantomsection
+\section*{THÔNG TIN NỘP BÀI}
+\addcontentsline{toc}{section}{THÔNG TIN NỘP BÀI}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|L{0.38\textwidth}|Y|}
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{Hạng mục} & \textbf{Đường dẫn / Thông tin} \\
+  \hline
+  Kho mã nguồn GitHub & \url{https://github.com/Tricancode/CO3054-IoT-BTL-FireAlarm} \\
+  \hline
+  Video demo & \placeholder{https://\dots} \\
+  \hline
+  Dashboard CoreIOT (public link, nếu có) & \placeholder{https://\dots} \\
+  \hline
+  Ngày nộp & \placeholder{dd/mm/yyyy} \\
+  \hline
+\end{tabularx}
+\end{center}
+
+\vspace{0.8cm}
+
+% =====================================================================
+% BẢNG PHÂN CÔNG CÔNG VIỆC
+% =====================================================================
+\phantomsection
+\section*{BẢNG PHÂN CÔNG CÔNG VIỆC}
+\addcontentsline{toc}{section}{BẢNG PHÂN CÔNG CÔNG VIỆC}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|C{0.06\textwidth}|L{0.24\textwidth}|C{0.13\textwidth}|Y|C{0.12\textwidth}|}
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Công việc phụ trách} & \textbf{Đóng góp} \\
+  \hline
+  1 & Nguyễn Tiến Minh Trí & 2413648 & \placeholder{\dots} & \placeholder{\dots\%} \\
+  \hline
+  2 & Phạm Nghĩa Trung     & 2413713 & \placeholder{\dots} & \placeholder{\dots\%} \\
+  \hline
+  3 & Đào Nhật Toàn        & 2413523 & \placeholder{\dots} & \placeholder{\dots\%} \\
+  \hline
+\end{tabularx}
+\end{center}
+
+\clearpage
+
+% =====================================================================
+% BẢNG TỰ ĐÁNH GIÁ CÁC YẾU TỐ CÔNG NGHỆ
+% =====================================================================
+\phantomsection
+\section*{BẢNG TỰ ĐÁNH GIÁ CÁC YẾU TỐ CÔNG NGHỆ}
+\addcontentsline{toc}{section}{BẢNG TỰ ĐÁNH GIÁ CÁC YẾU TỐ CÔNG NGHỆ}
+
+\begin{center}
+  \textit{\textbf{Bảng A.} Các yếu tố công nghệ (tối đa 8 điểm)}
+\end{center}
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{|C{0.06\textwidth}|L{0.37\textwidth}|C{0.07\textwidth}|C{0.12\textwidth}|C{0.11\textwidth}|L{0.15\textwidth}|}
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{Mã} & \textbf{Yếu tố công nghệ} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục báo cáo} & \textbf{Minh chứng} \\
+  \hline
+  \endfirsthead
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{Mã} & \textbf{Yếu tố công nghệ} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục báo cáo} & \textbf{Minh chứng} \\
+  \hline
+  \endhead
+  \hline
+  \endfoot
+
+  \multicolumn{6}{|l|}{\cellcolor{iotGroupRow}\textbf{Nhóm 1 -- Cảm biến}} \\
+  \hline
+  T01 & Cảm biến sử dụng giao tiếp I2C trên Tasmota & 0.5 & Không & -- & -- \\
+  \hline
+  T02 & Cảm biến sử dụng giao tiếp Modbus RS485 & 1.0 & Không & -- & -- \\
+  \hline
+  T03 & Cảm biến sử dụng kết nối BLE với thiết bị khác & 1.5 & Không & -- & -- \\
+  \hline
+
+  \multicolumn{6}{|l|}{\cellcolor{iotGroupRow}\textbf{Nhóm 2 -- Trí tuệ nhân tạo trên thiết bị (TinyML)}} \\
+  \hline
+  T04 & Thông tin được nội suy từ AI (TinyML chạy trên thiết bị) & 1.0 & Có & Mục \ref{subsubsec:ai-trien-khai} & Hình \ref{fig:so-do-dau-noi}, \ref{fig:tinyml-serial} (\texttt{T04\_1.jpg}, \texttt{T04\_2.jpg}, \texttt{T04\_3.png}) \\
+  \hline
+  T05 & Công cụ thu thập dữ liệu, huấn luyện và export ra model TinyML & 1.0 & Có & Mục \ref{subsubsec:ai-du-lieu}, \ref{subsubsec:ai-huan-luyen} & Hình \ref{fig:tinyml-train} (\path{T05.png}), \path{train_tinyml.py} \\
+  \hline
+
+  \multicolumn{6}{|l|}{\cellcolor{iotGroupRow}\textbf{Nhóm 3 -- Giao tiếp và giao diện cục bộ}} \\
+  \hline
+  T06 & Giao tiếp không dây sử dụng ESP-NOW & 1.5 & Không & -- & -- \\
+  \hline
+  T07 & Webserver trên thiết bị (tự hiện thực -- hiển thị, điều khiển local) & 1.0 & Không & Mục \ref{subsubsec:webserver-thiet-bi} & -- \\
+  \hline
+
+  \multicolumn{6}{|l|}{\cellcolor{iotGroupRow}\textbf{Nhóm 4 -- IoT Gateway cục bộ}} \\
+  \hline
+  T08 & IoT Gateway hiện thực trên PC (hoặc Raspberry Pi): tổng hợp dữ liệu, gửi lên CoreIOT, nhận lệnh điều khiển từ CoreIOT và phân phối cho các thiết bị trong mạng local & 1.0 & Có & Mục \ref{subsec:truyen-thong-thiet-bi}, \ref{subsec:iot-gateway} & Hình \ref{fig:uart-gateway-log} (\path{T08.png}), \path{LocalGateway.py} \\
+  \hline
+  T09 & Chức năng AI chạy trên IoT Gateway local để phân tích dữ liệu, phát hiện (detect) và gửi kết quả lên server & 1.0 & Có & Mục \ref{subsubsec:ai-huan-luyen} & Hình \ref{fig:isolation-forest} (\path{T09_1.png}, \path{T09_2.png}) \\
+  \hline
+  T10 & Giao diện giám sát -- điều khiển trên IoT Gateway local & 1.0 & Có & Mục \ref{subsec:iot-gateway} & Hình \ref{fig:local-scada} (\path{T10.png}) \\
+  \hline
+
+  \multicolumn{6}{|l|}{\cellcolor{iotGroupRow}\textbf{Nhóm 5 -- Nền tảng CoreIOT}} \\
+  \hline
+  T11 & Sử dụng template để phát triển ứng dụng, thiết kế dashboard, giám sát và điều khiển từ xa & 1.0 & Có & Mục \ref{subsubsec:coreiot-dashboard} & Hình \ref{fig:tb-dashboard} (\path{T11.png}) \\
+  \hline
+  T12 & Sử dụng RuleChain để phát triển tính năng thông minh & 1.0 & Có & Mục \ref{subsubsec:coreiot-rulechain} & Hình \ref{fig:tb-rulechain} (\path{T12.png}) \\
+  \hline
+  T13 & Gửi cảnh báo bằng notification khi dữ liệu vượt ngưỡng & 0.5 & Có & Mục \ref{subsubsec:coreiot-rulechain} & Hình \ref{fig:tb-dashboard} (Widget 10), \path{LocalGateway.py} \\
+  \hline
+  T14 & Cập nhật firmware OTA cho thiết bị & 2.0 & Không & Mục \ref{subsubsec:coreiot-ota} & -- \\
+  \hline
+  T15 & IoT Gateway trên CoreIOT đồng bộ với IoT Gateway local & 2.0 & Có & Mục \ref{subsec:iot-gateway} & \path{LocalGateway.py}, \path{gateway_hardware_buffer.db} \\
+  \hline
+\end{longtable}
+}
+
+\vspace{0.3cm}
+\begin{center}
+  \textit{\textbf{Bảng B.} Các tính năng nâng cao (tối đa 1 điểm)}
+\end{center}
+
+{\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{|C{0.06\textwidth}|L{0.37\textwidth}|C{0.07\textwidth}|C{0.12\textwidth}|C{0.11\textwidth}|L{0.15\textwidth}|}
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{Mã} & \textbf{Tính năng nâng cao} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục báo cáo} & \textbf{Minh chứng} \\
+  \hline
+  \endfirsthead
+  \hline
+  \rowcolor{iotTableHead}
+  \textbf{Mã} & \textbf{Tính năng nâng cao} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục báo cáo} & \textbf{Minh chứng} \\
+  \hline
+  \endhead
+  \hline
+  \endfoot
+
+  N01 & Trợ lý ảo -- LLM & 1.0 & Không & -- & -- \\
+  \hline
+  N02 & Giọng nói -- Âm thanh & 1.0 & Không & -- & -- \\
+  \hline
+  N03 & Màn hình hiển thị dựa trên LVGL & 1.0 & Không & Mục \ref{subsubsec:node-1} & -- \\
+  \hline
+  N04 & AI chạy bằng GPU của thiết bị & 1.0 & Không & -- & -- \\
+  \hline
+  N05 & Ứng dụng mobile được thiết kế riêng & 1.0 & Không & -- & -- \\
+  \hline
+  N06 & Giao diện dashboard thiết kế riêng, có khả năng phát hiện (detect) và ghi nhận (record) các sự kiện & 1.0 & Có & Mục \ref{subsec:tinh-nang-nang-cao} & Hình \ref{fig:n06-eventlog} (\texttt{N06.png}) \\
+  \hline
+  N07 & Tự triển khai (deploy) ThingsBoard trên máy local & 1.0 & Có & Mục \ref{subsec:tinh-nang-nang-cao} & Hình \ref{fig:n07-docker} (\texttt{N07.png}) \\
+  \hline
+\end{longtable}
+}
+
+\noindent\textbf{\textcolor{iotPrimary}{Tổng điểm tự đánh giá: Công nghệ: 8.0/8 (tích lũy 9.5 điểm: T04, T05, T08--T13, T15) \quad -- \quad Nâng cao: 1.0/1 (tích lũy 2.0 điểm: N06, N07)}}

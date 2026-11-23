@@ -3,7 +3,7 @@ isolation_detector.py
 =====================
 Isolation Forest Machine Learning Anomaly Detector for IoT Fire Gateway.
 Performs real-time edge anomaly detection on multi-sensor telemetry:
-- Inputs: Smoke Density (ppm), Ambient Temperature (deg C), Flame Status (0/1).
+- Inputs: raw MQ-2 ADC (0-4095), Ambient Temperature (deg C), Flame Status (0/1).
 - Outputs: is_anomaly (0: Normal, 1: Anomaly), anomaly_score (0.0 to 1.0).
 
 Strictly English. Zero icons or emojis.
@@ -29,6 +29,11 @@ class IsolationDetector:
     and dynamically adapts to normal sensor drift while rejecting anomalies.
     """
 
+    # Keep these limits aligned with the ESP32 firmware's MQ-2 and DHT alarm
+    # thresholds. The MQ-2 input is the raw 12-bit ADC value, not ppm.
+    SMOKE_ALARM_THRESHOLD = 1800.0
+    TEMPERATURE_ALARM_THRESHOLD_C = 35.0
+
     def __init__(
         self,
         window_size: int = 200,
@@ -48,12 +53,13 @@ class IsolationDetector:
         self._initialize_baseline_model()
 
     def _generate_synthetic_baseline(self, num_samples: int = 100) -> List[List[float]]:
-        """Generates representative normal ambient indoor sensor readings."""
+        """Generate safe baseline samples in the firmware's raw sensor units."""
         samples = []
         for i in range(num_samples):
-            # Normal ambient indoor readings: smoke ADC 120-180, temp 24-28 C, flame 0
-            smoke_val = 150.0 + ((i % 25) - 12.0) * 2.0
-            temp_val = 26.0 + ((i * 3) % 7) - 3.0
+            # Cover the safe operating range below firmware alarm thresholds.
+            # This avoids assuming a particular board's clean-air MQ-2 offset.
+            smoke_val = float((i * 37) % int(self.SMOKE_ALARM_THRESHOLD))
+            temp_val = 15.0 + ((i * 7) % 20)
             flame_val = 0.0
             samples.append([float(smoke_val), float(temp_val), float(flame_val)])
         return samples
@@ -103,13 +109,25 @@ class IsolationDetector:
             t = float(temperature)
             f = float(flame)
         except (ValueError, TypeError):
-            return 0, 0.0
+            return 1, 0.90
+
+        # NaN/Inf values can be emitted by a disconnected or warming-up sensor;
+        # sklearn rejects them and must not silently turn them into "normal".
+        if not all(math.isfinite(value) for value in (s, t, f)):
+            return 1, 0.90
+
+        # Firmware-level alarm conditions take precedence over model prediction.
+        hard_anomaly = (
+            f > 0.5
+            or s >= self.SMOKE_ALARM_THRESHOLD
+            or t >= self.TEMPERATURE_ALARM_THRESHOLD_C
+        )
 
         sample = [s, t, f]
 
         if not HAS_SKLEARN or self.model is None:
             # Statistical rule-based fallback
-            is_anom = 1 if (s > 800.0 or t > 45.0 or f > 0.5) else 0
+            is_anom = 1 if hard_anomaly else 0
             score = 0.95 if is_anom else 0.15
             return is_anom, score
 
@@ -119,15 +137,19 @@ class IsolationDetector:
                 raw_df = float(self.model.decision_function(X_eval)[0])
                 pred = int(self.model.predict(X_eval)[0])
             except Exception:
-                return 0, 0.0
+                return 1, 0.90
 
             # Sigmoid mapping: decision_function > 0 -> < 0.5, decision_function < 0 -> >= 0.5
             norm = 1.0 / (1.0 + math.exp(raw_df * 15.0))
             anomaly_score = round(min(1.0, max(0.0, norm)), 2)
-            is_anomaly = 1 if (pred == -1 or anomaly_score >= 0.65 or f > 0.5 or s > 800.0 or t > 45.0) else 0
+            is_anomaly = 1 if (pred == -1 or anomaly_score >= 0.65 or hard_anomaly) else 0
+
+            # Keep the displayed score consistent with the anomaly flag.
+            if is_anomaly:
+                anomaly_score = max(anomaly_score, 0.65)
 
             # For active fire or extreme smoke, boost score to reflect severity
-            if f > 0.5 or s > 800.0 or t > 45.0:
+            if hard_anomaly:
                 anomaly_score = max(anomaly_score, 0.90)
 
             # Prevent model poisoning: only add normal samples to training buffer

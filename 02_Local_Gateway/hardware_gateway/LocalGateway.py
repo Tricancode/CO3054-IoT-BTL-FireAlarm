@@ -75,7 +75,7 @@ def parse_uart_payload(line: str) -> Optional[Dict[str, Any]]:
     # 2. Text log from 01_Firmware_EndNode (main.cpp line 159)
     # e.g.: "MQ-2 ADC: 1450 | Lua: KHONG | Nhiet do: 28.5 C | Do am: 65% | AI Risk: 12.5% | Trang thai: AN TOAN"
     m = re.search(
-        r'MQ-2 ADC:\s*(\d+).*?Lua:\s*(PHAT HIEN|KHONG|0|1).*?Nhiet do:\s*([\d\.\-]+|nan|NAN).*?Do am:\s*([\d\.\-]+|nan|NAN)(?:.*?AI Risk:\s*([\d\.\-]+)%)?',
+        r'MQ-2 ADC:\s*(\d+).*?Lua:\s*(PHAT HIEN|KHONG|0|1).*?Nhiet do:\s*([\d\.\-]+|nan|NAN).*?Do am:\s*([\d\.\-]+|nan|NAN)(?:.*?AI Risk:\s*([\d\.\-]+)%)?(?:.*?Trang thai:\s*(AN TOAN|CANH BAO))?',
         cleaned,
         re.IGNORECASE
     )
@@ -103,6 +103,8 @@ def parse_uart_payload(line: str) -> Optional[Dict[str, Any]]:
                 payload["tinyml_risk"] = float(m.group(5))
             except ValueError:
                 pass
+        if m.group(6):
+            payload["status"] = m.group(6).upper()
 
         return payload
 
@@ -561,7 +563,15 @@ class LocalHardwareGateway:
                             self.latest_telemetry["last_seen"] = int(now_ts)
                             cloud_ready = self.latest_telemetry["cloud_connected"]
 
-                        print(f"[UART RX ESP32-S3] Smoke: {payload.get('smoke')} | Flame: {payload.get('flame')} | Temp: {payload.get('temperature')} C | Anomaly: {is_anom}")
+                        tinyml_risk = float(payload.get("tinyml_risk", 0.0))
+                        device_status = payload.get(
+                            "status", "CANH BAO" if sensor_alarm else "AN TOAN"
+                        )
+                        print(
+                            f"[UART RX ESP32-S3] Smoke: {payload.get('smoke')} | "
+                            f"Flame: {payload.get('flame')} | Temp: {payload.get('temperature')} C | "
+                            f"AI Risk: {tinyml_risk:.1f}% | Trang thai: {device_status} | Anomaly: {is_anom}"
+                        )
 
                         # Store in SQLite buffer
                         self.buffer_repo.insert(payload)

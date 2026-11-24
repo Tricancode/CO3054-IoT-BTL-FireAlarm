@@ -1,0 +1,360 @@
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:36:08
+Severity : CRITICAL FIRE HAZARD
+Target Customer Emails: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2150 ADC
+  - Temperature (DHT20)   : 38.5 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 94.2%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:37:29
+Severity : CRITICAL FIRE HAZARD
+Target Customer Emails: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2150 ADC
+  - Temperature (DHT20)   : 38.5 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 94.2%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:45:45
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 1913 ADC
+  - Temperature (DHT20)   : 30.8 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 90.3%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:46:13
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 1963 ADC
+  - Temperature (DHT20)   : 30.9 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 92.0%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:46:40
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 1853 ADC
+  - Temperature (DHT20)   : 30.9 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 88.4%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:46:43
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2173 ADC
+  - Temperature (DHT20)   : 30.9 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 95.7%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 21:46:55
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2254 ADC
+  - Temperature (DHT20)   : 31.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 96.9%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:28:31
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2103 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 87.5%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:28:41
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2379 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 95.1%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:28:49
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2488 ADC
+  - Temperature (DHT20)   : 32.1 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 96.8%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:29:01
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 411 ADC
+  - Temperature (DHT20)   : 32.1 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 59.5%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:29:48
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 1881 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 75.3%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:29:59
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2318 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 94.0%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:30:18
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 235 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 40.1%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 22:32:48
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2391 ADC
+  - Temperature (DHT20)   : 32.1 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 94.9%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 23:01:34
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2274 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 91.4%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 23:02:02
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2007 ADC
+  - Temperature (DHT20)   : 32.0 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 79.6%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 23:19:10
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2141 ADC
+  - Temperature (DHT20)   : 32.1 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 86.8%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 23:19:12
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2427 ADC
+  - Temperature (DHT20)   : 32.2 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 95.6%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-24 23:19:28
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 2213 ADC
+  - Temperature (DHT20)   : 32.1 C
+  - Flame Optical Sensor  : None
+  - Edge AI / TinyML Risk : 89.5%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+

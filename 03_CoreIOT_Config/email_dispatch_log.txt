@@ -466,3 +466,39 @@ Integrated 4-Tier Automated Actions:
   [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
 ======================================================================
 
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-26 22:44:26
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 350 ADC
+  - Temperature (DHT20)   : 55.4 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 92.5%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+
+======================================================================
+HCMUT IOT EMERGENCY FIRE ALERT - 4-TIER NOTIFICATION BROADCAST
+======================================================================
+Timestamp: 2026-11-26 22:44:44
+Severity : CRITICAL FIRE HAZARD
+Recipients: customera@gmail.com, customerb@gmail.com, customerc@gmail.com
+Sensory Telemetry:
+  - Smoke Sensor (MQ-2)   : 350 ADC
+  - Temperature (DHT20)   : 55.4 C
+  - Flame Optical Sensor  : FLAME DETECTED
+  - Edge AI / TinyML Risk : 92.5%
+Integrated 4-Tier Automated Actions:
+  [Tier 1 - ESP32 Hardware]  : Buzzer GPIO 6 ON, Warning LED GPIO 17 ON, Servo Door GPIO 5 Open 180 deg, TFT LCD Red Alert.
+  [Tier 2 - Local Gateway]   : Web SCADA Port 5050 Alert Banner, SQLite WAL Persisted.
+  [Tier 3 - ThingsBoard Cloud]: CRITICAL FIRE_ALARM Created, Auto-cleared on Safe.
+  [Tier 4 - Customer Dispatch]: Emergency Email Dispatched to Customers A, B, C.
+======================================================================
+

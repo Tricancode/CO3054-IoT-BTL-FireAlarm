@@ -63,9 +63,7 @@ CO3054-IoT-BTL-FireAlarm/
 ├── 05_Guideline/              # Đề bài và văn bản hướng dẫn học phần CO3054
 ├── 06_Test/                   # Toàn bộ test suite tự động (test_system, test_rulechain, latency, telemetry)
 ├── run_system.py              # Script điều phối khởi động toàn bộ hệ thống bằng 1 lệnh (UART/BLE)
-├── requirements.txt           # Danh mục thư viện Python cần thiết
-├── HUONG_DAN_CHAY.md          # Hướng dẫn chi tiết vận hành & xử lý sự cố
-└── KICH_BAN_QUAY_DEMO.md      # Kịch bản quay video demo 5 phân cảnh ứng với 11 tiêu chí
+└── requirements.txt           # Danh mục thư viện Python cần thiết
 ```
 
 ---

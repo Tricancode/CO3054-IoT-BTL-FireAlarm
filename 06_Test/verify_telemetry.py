@@ -16,7 +16,7 @@ import threading
 from pathlib import Path
 import paho.mqtt.client as mqtt
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parent.parent / "02_Local_Gateway"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from ui.isolation_detector import IsolationDetector

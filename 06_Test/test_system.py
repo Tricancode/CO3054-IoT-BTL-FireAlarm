@@ -17,8 +17,13 @@ import tempfile
 import time
 import unittest
 import urllib.request
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+GATEWAY_ROOT = Path(__file__).resolve().parent.parent / "02_Local_Gateway"
+if str(GATEWAY_ROOT) not in sys.path:
+    sys.path.insert(0, str(GATEWAY_ROOT))
 
 from ui.gateway_infrastructure import EmbeddedWebMonitor, OfflineBufferRepository
 from ui.isolation_detector import IsolationDetector
@@ -43,18 +48,18 @@ VIETNAMESE_PATTERN = re.compile(
 class TestProjectCompliance(unittest.TestCase):
     def test_no_emojis_or_vietnamese_in_codebase(self):
         """Audit all source code files to guarantee zero emojis and zero Vietnamese in Python modules."""
-        project_root = Path(__file__).resolve().parent
+        gateway_root = Path(__file__).resolve().parent.parent / "02_Local_Gateway"
+        test_root = Path(__file__).resolve().parent
         python_files = [
-            project_root / "ui" / "gateway_infrastructure.py",
-            project_root / "ui" / "isolation_detector.py",
-            project_root / "simulation" / "LocalGateway_Simulation.py",
-            project_root / "hardware_gateway" / "LocalGateway.py",
-            project_root / "simulation" / "SimulationNode.py",
-            project_root / "start_system.py",
-            project_root / "dashboard" / "deploy_thingsboard.py",
-            project_root / "dashboard" / "setup_thingsboard_dashboard.py",
-            project_root / "dashboard" / "verify_telemetry.py",
-            project_root / "test_system.py",
+            gateway_root / "ui" / "gateway_infrastructure.py",
+            gateway_root / "ui" / "isolation_detector.py",
+            gateway_root / "hardware_gateway" / "LocalGateway.py",
+            gateway_root / "start_system.py",
+            gateway_root / "dashboard" / "deploy_thingsboard.py",
+            gateway_root / "dashboard" / "setup_thingsboard_dashboard.py",
+            gateway_root / "dashboard" / "upload_ota_firmware.py",
+            test_root / "verify_telemetry.py",
+            test_root / "test_system.py",
         ]
 
         # Audit Python source code for both emojis and Vietnamese characters
@@ -78,7 +83,9 @@ class TestProjectCompliance(unittest.TestCase):
                 )
 
         # Audit README.md for zero emojis/icons
-        readme_path = project_root / "README.md"
+        readme_path = gateway_root / "README.md"
+        if not readme_path.exists():
+            readme_path = gateway_root.parent / "README.md"
         if readme_path.exists():
             with open(readme_path, "r", encoding="utf-8") as f:
                 readme_content = f.read()
@@ -251,7 +258,7 @@ class TestIsolationForestAnomalyDetection(unittest.TestCase):
 class TestThingsBoardIntegration(unittest.TestCase):
     def test_dashboard_json_structure(self):
         """Verify thingsboard_dashboard.json contains valid ThingsBoard 3.x schema and all 8 widgets."""
-        dashboard_file = Path(__file__).resolve().parent / "dashboard" / "thingsboard_dashboard.json"
+        dashboard_file = GATEWAY_ROOT / "dashboard" / "thingsboard_dashboard.json"
         self.assertTrue(dashboard_file.exists(), "thingsboard_dashboard.json file must exist")
 
         with open(dashboard_file, "r", encoding="utf-8") as f:

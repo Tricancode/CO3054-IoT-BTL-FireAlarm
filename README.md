@@ -50,18 +50,19 @@ CO3054-IoT-BTL-FireAlarm/
 ├── 02_Local_Gateway/          # Mã nguồn IoT Gateway chạy trên PC
 │   ├── hardware_gateway/      # LocalGateway.py (Đồng bộ ThingsBoard Gateway API & SQLite WAL)
 │   ├── ui/                    # Máy chủ Flask SCADA Web :5050, isolation_detector.py
-│   └── dashboard/             # Script tự động tạo 10 Widgets & docker-compose.yml
+│   ├── dashboard/             # Script tự động tạo 10 Widgets, upload OTA & docker-compose.yml
+│   └── gateway_hardware_buffer.db # CSDL đệm ngoại tuyến SQLite WAL (Store-and-Forward)
 ├── 03_CoreIOT_Config/         # Cấu hình ThingsBoard Cloud CE
 │   ├── rule_chains/           # JSON RuleChain tự động hóa cảnh báo khẩn cấp
-│   └── scripts/               # Script tự động nạp RuleChain & test độ trễ E2E
-├── 04_Docs_Media/             # Báo cáo kỹ thuật LaTeX (6 chương, 36 trang) & file PDF đã biên dịch
+│   └── scripts/               # Script tự động nạp RuleChain & notification
+├── 04_Docs_Media/             # Báo cáo kỹ thuật LaTeX (6 chương, 40 trang) & file PDF đã biên dịch
 │   ├── Content/               # Các chương ch1 đến ch6, bảng tự đánh giá
-│   ├── graphics/              # 14 hình ảnh minh chứng các tiêu chí kỹ thuật
+│   ├── graphics/              # 16 hình ảnh minh chứng các tiêu chí kỹ thuật
+│   ├── slide/                 # Slide thuyết trình Beamer LaTeX
 │   └── main.pdf               # Báo cáo hoàn chỉnh xuất bản chất lượng cao
 ├── 05_Guideline/              # Đề bài và văn bản hướng dẫn học phần CO3054
-├── captured_picture/          # Hình ảnh chụp thực tế phục vụ nghiệm thu 11 tiêu chí
-├── gateway_hardware_buffer.db # CSDL đệm ngoại tuyến SQLite WAL đặt tại thư mục gốc
-├── run_system.py              # Script điều phối khởi động toàn bộ hệ thống bằng 1 lệnh
+├── 06_Test/                   # Toàn bộ test suite tự động (test_system, test_rulechain, latency, telemetry)
+├── run_system.py              # Script điều phối khởi động toàn bộ hệ thống bằng 1 lệnh (UART/BLE)
 ├── requirements.txt           # Danh mục thư viện Python cần thiết
 ├── HUONG_DAN_CHAY.md          # Hướng dẫn chi tiết vận hành & xử lý sự cố
 └── KICH_BAN_QUAY_DEMO.md      # Kịch bản quay video demo 5 phân cảnh ứng với 11 tiêu chí

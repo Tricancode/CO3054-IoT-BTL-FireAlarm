@@ -376,7 +376,7 @@ class LocalHardwareGateway:
         esp32_ip: Optional[str] = None,
     ):
         # 1. Offline storage repository (SQLite WAL)
-        self.db_path = Path("gateway_hardware_buffer.db")
+        self.db_path = PROJECT_ROOT / "gateway_hardware_buffer.db"
         self.buffer_repo = OfflineBufferRepository(self.db_path)
 
         # 2. Transport Adapter (BLE or UART)

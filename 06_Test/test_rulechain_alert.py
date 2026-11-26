@@ -34,7 +34,7 @@ class TestRuleChainAlert(unittest.TestCase):
         self.rule_chain_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "../rule_chains/fire_alarm_rule_chain.json",
+                "../03_CoreIOT_Config/rule_chains/fire_alarm_rule_chain.json",
             )
         )
 

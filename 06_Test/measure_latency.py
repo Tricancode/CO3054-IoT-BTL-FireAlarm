@@ -45,7 +45,7 @@ DEFAULT_TOKEN = os.getenv("COREIOT_TOKEN", "i2tchqq1390qcxhun4zr")
 TELEMETRY_TOPIC = "v1/devices/me/telemetry"
 RPC_REQUEST_TOPIC = "v1/devices/me/rpc/request/+"
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT_CSV = REPO_ROOT / "04_Docs_Media" / "experiments" / "latency_results.csv"
 
 EXPECTED_CRITICAL_METHODS = {"servo", "buzzer", "led"}

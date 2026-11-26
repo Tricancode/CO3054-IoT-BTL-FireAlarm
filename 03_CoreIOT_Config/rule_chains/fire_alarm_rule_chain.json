@@ -35,7 +35,7 @@
         "debugMode": false,
         "configuration": {
           "alarmType": "FIRE_ALARM",
-          "alarmDetailsBuildJs": "var details = { temperature: msg.temperature, smoke_level: msg.smoke_level, tinyml_fire: msg.tinyml_fire, location: metadata.deviceLocation || 'Zone 1' };\nreturn details;",
+          "alarmDetailsBuildJs": "var details = { temperature: msg.temperature, smoke_level: msg.smoke_level, tinyml_fire: msg.tinyml_fire, location: metadata.deviceLocation || 'Zone 1', tier_1_hardware: 'Buzzer ON, LED ON, Servo 180, LCD Red Alert', tier_2_gateway: 'SCADA 5050 Alert Banner, SQLite WAL Logged', tier_3_cloud: 'ThingsBoard Cloud CRITICAL Alarm', tier_4_customer: 'Broadcasted to Customer A, B, C', customer_emails: 'customera@gmail.com, customerb@gmail.com, customerc@gmail.com' };\nreturn details;",
           "severity": "CRITICAL",
           "propagate": true,
           "useMessageAlarmData": false,

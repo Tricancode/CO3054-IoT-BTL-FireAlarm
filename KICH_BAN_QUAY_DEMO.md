@@ -3,7 +3,7 @@
 **Đề tài:** Hệ thống Báo cháy & Điều khiển Cửa Ngăn Cháy Thông minh (YoloUNO ESP32-S3 + Dual-AI TinyML/Isolation Forest + Local IoT Gateway UART/BLE + ThingsBoard/CoreIOT)  
 **Giảng viên hướng dẫn:** TS. Lê Trọng Nhân (`02_Local_Gateway/Guideline/Đề.md`)  
 **Thời lượng video khuyến nghị:** 6 – 8 phút *(đáp ứng quy định 5 – 10 phút trong đề bài)*  
-**Mục tiêu điểm số:** **8.0/8.0 Công nghệ** *(tích lũy 10.5 điểm, dư 2.5 điểm dự phòng)* + **1.0/1.0 Nâng cao** *(tích lũy 2.0 điểm)* + **2.0/2.0 Báo cáo** = **10.0/10.0 điểm tối đa**.
+**Mục tiêu điểm số:** **8.0/8.0 Công nghệ** *(tích lũy 13.0 điểm, dư 5.0 điểm dự phòng)* + **1.0/1.0 Nâng cao** *(tích lũy 2.0 điểm)* + **2.0/2.0 Báo cáo** = **10.0/10.0 điểm tối đa**.
 
 > **Lưu ý kiểm toán mã nguồn (Codebase Audit):** Tài liệu này đã được đối chiếu 100% với mã nguồn thực tế trong workspace. Hệ thống sử dụng **mô hình kết nối qua IoT Gateway** (ESP32-S3 giao tiếp **UART Serial** hoặc **BLE không dây** với PC Gateway, sau đó PC Gateway kết nối MQTT tới ThingsBoard Local / CoreIOT), **không** dùng Wi-Fi/WebServer trực tiếp trên ESP32 (`T07`) và màn hình TFT hiện vẽ bằng **`Adafruit_ILI9341` + `Adafruit_GFX`** (chưa chuyển sang LVGL `N03` dù có sẵn file `include/lv_conf.h`). Xem chi tiết các điểm cần lưu ý ở **Phần 3**.
 
@@ -23,6 +23,8 @@
 | **T10** | Giao diện giám sát – điều khiển trên IoT Gateway local | 1.0 | `02_Local_Gateway/ui/gateway_infrastructure.py` (`EmbeddedWebMonitor`, `HTML_DASHBOARD`, cổng `5050`, `/api/telemetry`, `/api/control`) | Phân cảnh 2, Phân cảnh 4 |
 | **T11** | Sử dụng template để phát triển ứng dụng, thiết kế dashboard, giám sát và điều khiển từ xa | 1.0 | `02_Local_Gateway/dashboard/setup_thingsboard_dashboard.py`<br>`02_Local_Gateway/dashboard/thingsboard_dashboard.json` (10 widget trên lưới 24 cột) | Phân cảnh 2, Phân cảnh 3, Phân cảnh 4 |
 | **T12** | Sử dụng RuleChain để phát triển tính năng thông minh | 1.0 | `03_CoreIOT_Config/rule_chains/fire_alarm_rule_chain.json`<br>`03_CoreIOT_Config/scripts/setup_rule_chain.py`<br>`03_CoreIOT_Config/scripts/test_rulechain_alert.py`<br>`03_CoreIOT_Config/scripts/measure_latency.py` | Phân cảnh 3 |
+| **T13** *(Bổ sung)* | Gửi cảnh báo bằng notification khi dữ liệu vượt ngưỡng (Notification Center & Email Dispatch) | 0.5 | `03_CoreIOT_Config/scripts/setup_customer_notifications.py`<br>`02_Local_Gateway/hardware_gateway/LocalGateway.py` (`dispatch_customer_notifications`)<br>`03_CoreIOT_Config/email_dispatch_log.txt` (gửi email tới Customer A, B, C) | Phân cảnh 3 (Bước 3.4) |
+| **T14** *(Bổ sung)* | Cập nhật firmware qua OTA (Over-The-Air) không dây qua Wi-Fi / ThingsBoard | 2.0 | `01_Firmware_EndNode/firmware_v1.0.1.bin` & `firmware_v1.0.2.bin`<br>`02_Local_Gateway/dashboard/upload_ota_firmware.py`<br>`02_Local_Gateway/hardware_gateway/LocalGateway.py` (`_perform_ota_update`, ArduinoOTA qua Wi-Fi) | Phân cảnh 5 (Mới) |
 | **T15** | IoT Gateway trên CoreIOT đồng bộ với IoT Gateway local | 2.0 | `02_Local_Gateway/dashboard/setup_thingsboard_dashboard.py` (`additionalInfo.gateway = True`)<br>`02_Local_Gateway/hardware_gateway/LocalGateway.py` (`--gateway-api`, `v1/gateway/telemetry`, `v1/gateway/rpc`, `sync_worker`)<br>`02_Local_Gateway/ui/gateway_infrastructure.py` (`OfflineBufferRepository` – SQLite WAL `gateway_hardware_buffer.db`) | Phân cảnh 4 |
 | **N06** | Giao diện dashboard thiết kế riêng, có khả năng phát hiện (detect) và ghi nhận (record) các sự kiện | 1.0 *(Cộng)* | `02_Local_Gateway/ui/gateway_infrastructure.py` (`HTML_DASHBOARD`, `#alert-banner`, `Real-Time Station Event Log`, SQLite WAL audit) | Phân cảnh 2, Phân cảnh 3, Phân cảnh 4 |
 | **N07** | Tự triển khai (deploy) ThingsBoard trên máy local | 1.0 *(Cộng)* | `02_Local_Gateway/dashboard/docker-compose.yml` (`thingsboard-local`, cổng `9090`/`1883`)<br>`02_Local_Gateway/dashboard/deploy_thingsboard.py` | Phân cảnh 1, Phân cảnh 4 |
@@ -32,8 +34,11 @@
 $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text{Báo cáo } (\le 2.0) + \min\!\left(1.0;\ \sum \text{Nâng cao}\right)$$
 
 * **Tổng điểm Công nghệ tích lũy:**
-  $$\sum \text{Công nghệ} = T03(1.5) + T04(1.0) + T05(1.0) + T08(1.0) + T09(1.0) + T10(1.0) + T11(1.0) + T12(1.0) + T15(2.0) = \mathbf{10.5\text{ điểm}}$$
-  $\rightarrow$ Điểm Công nghệ tính theo trần quy chế: $\min(8.0;\ 10.5) = \mathbf{8.0 / 8.0\text{ điểm}}$ *(dư 2.5 điểm an toàn dự phòng)*.
+  $$\begin{aligned}
+  \sum \text{Công nghệ} &= T03(1.5) + T04(1.0) + T05(1.0) + T08(1.0) + T09(1.0) + T10(1.0) \\
+  &\quad + T11(1.0) + T12(1.0) + T13(0.5) + T14(2.0) + T15(2.0) = \mathbf{13.0\text{ điểm}}
+  \end{aligned}$$
+  $\rightarrow$ Điểm Công nghệ tính theo trần quy chế: $\min(8.0;\ 13.0) = \mathbf{8.0 / 8.0\text{ điểm}}$ *(dư 5.0 điểm an toàn dự phòng tuyệt đối)*.
 * **Tổng điểm Nâng cao tích lũy:**
   $$\sum \text{Nâng cao} = N06(1.0) + N07(1.0) = \mathbf{2.0\text{ điểm}} \rightarrow \min(1.0;\ 2.0) = \mathbf{1.0 / 1.0\text{ điểm}}$$
 * **Điểm Báo cáo kỹ thuật:** $\mathbf{2.0 / 2.0\text{ điểm}}$ *(trình bày đầy đủ 6 chương theo `02_Local_Gateway/Guideline/Temple_report.md` kèm ảnh minh chứng và bảng tự đánh giá)*.
@@ -44,10 +49,16 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
 | Mã | Tên tiêu chí trong đề bài | Trạng thái kiểm tra mã nguồn |
 | :---: | :--- | :--- |
 | **T01, T02** | Cảm biến I2C trên Tasmota (0.5) / Modbus RS485 (1.0) | Không dùng (cảm biến hiện tại: MQ-2 Analog GPIO1, Flame Digital GPIO9, DHT11 GPIO10). |
-| **T06, T07, T14** | ESP-NOW (1.5) / Webserver trên ESP32 (1.0) / OTA (2.0) | Không dùng (ESP32-S3 chạy qua Gateway UART/BLE; Web Monitor cổng 5050 chạy trên PC là **T10**, không phải T07). |
-| **T13** | Gửi cảnh báo bằng notification khi dữ liệu vượt ngưỡng (0.5) | Không đăng ký (đã dư điểm công nghệ tối đa 8.0/8.0). |
+| **T06, T07** | ESP-NOW (1.5) / Webserver trên ESP32 (1.0) | Không dùng (ESP32-S3 chạy qua Gateway UART/BLE; Web Monitor cổng 5050 chạy trên PC là **T10**, không phải T07). |
 | **N01, N02, N04, N05** | LLM / Giọng nói / GPU AI / Mobile App riêng | Không triển khai. |
 | **N03** | Màn hình hiển thị dựa trên LVGL (1.0) | **Chưa đạt trong code hiện tại:** có file `01_Firmware_EndNode/include/lv_conf.h`, nhưng `platformio.ini` chưa cài thư viện `lvgl` và `main.cpp` đang vẽ bằng `Adafruit_GFX` + `Adafruit_ILI9341`. Không nên đánh dấu "Có" cho N03 nếu chưa port sang LVGL (nhóm đã đạt tối đa 1.0/1.0 điểm Nâng cao nhờ **N06 + N07**). |
+
+### 1.4. Mô hình Cảnh báo Khẩn cấp 4 Cấp độ Đã Bổ Sung (4-Tier Notification Architecture)
+
+1. **Cấp độ 1 (Hardware End-Node ESP32-S3):** Còi Buzzer (GPIO 6) hú tần số cao, Đèn Warning LED (GPIO 17) chớp đỏ, Servo (GPIO 5) xoay 180° đóng cửa ngăn cháy, Màn hình TFT 320x240 chuyển toàn bộ nền đỏ rực `CANH BAO CHAY!` hiển thị chỉ số rủi ro TinyML Edge AI (%).
+2. **Cấp độ 2 (Local Gateway SCADA Port 5050 & SQLite WAL):** Nhấp nháy Banner đỏ khẩn cấp `ALARM WARNING: HIGH SMOKE CONCENTRATION DETECTED!`, Bảng `Real-Time Station Event Log` tự động ghi nhận sự kiện `[TIER 1-4 EMERGENCY]`, lưu trữ ngoại tuyến tức thì vào SQLite WAL `gateway_hardware_buffer.db`.
+3. **Cấp độ 3 (ThingsBoard Cloud Rule Chain):** Node `Evaluate Fire Risk` lọc đa biến, kích hoạt Alarm `FIRE_ALARM` mức độ `CRITICAL` và tự động kích hoạt `Clear Fire Alarm` khi môi trường trở về an toàn.
+4. **Cấp độ 4 (Notification Center & Email Broadcast - Tiêu chí T13):** ThingsBoard Notification Target / Template gửi Web In-App Notification; Local Gateway Dispatcher tự động phát email cảnh báo tới Customer A, B, C (`customera@gmail.com`, `customerb@gmail.com`, `customerc@gmail.com`) và ghi log kiểm toán vào `03_CoreIOT_Config/email_dispatch_log.txt`.
 
 ---
 
@@ -56,10 +67,11 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
 ### Bố cục khung hình khuyến nghị khi quay
 
 * **Màn hình máy tính (Screen Capture):**
-  * **Nửa trái:** Cửa sổ Terminal / PowerShell hiển thị log khởi động, dữ liệu UART/BLE, lệnh MQTT/RPC và quá trình đồng bộ SQLite.
-  * **Nửa phải:** Hai tab trình duyệt đặt sẵn để chuyển qua lại nhanh:
+  * **Nửa trái:** Cửa sổ Terminal / PowerShell hiển thị log khởi động, dữ liệu UART/BLE, lệnh MQTT/RPC, bảng dispatch email và quá trình đồng bộ SQLite.
+  * **Nửa phải:** Hai đến ba tab trình duyệt đặt sẵn để chuyển qua lại nhanh:
     * Tab 1: **Local SCADA Web Monitor** (`http://localhost:5050`).
     * Tab 2: **ThingsBoard Industrial Dashboard** (`http://localhost:9090/dashboards/47c220e0-e55d-11f1-b536-af039a103c55`).
+    * Tab 3: **ThingsBoard Alarms / Notification Center / OTA Updates**.
 * **Camera góc nhỏ (Webcam / Điện thoại):** Đặt cố định quay rõ mạch **ESP32-S3 YoloUNO**, màn hình **TFT ILI9341 320x240**, cụm cảm biến **MQ-2 / Flame / DHT11**, và **Servo cửa ngăn cháy, còi Buzzer, đèn LED đỏ**.
 
 ---
@@ -107,10 +119,10 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
   > *Còn ở cửa sổ Terminal bên trái, Local Gateway trên PC — tức tiêu chí **T08** — đã tự dò đúng cổng COM ở tốc độ `115200 baud`, kết nối thành công tới MQTT Broker `127.0.0.1`, đăng ký lắng nghe các lệnh điều khiển RPC, và tự mở sẵn cả hai trang giám sát trên trình duyệt. Sau đây em xin đi vào chi tiết màn hình giám sát ở trạng thái bình thường."*
 
 * **Ảnh minh chứng cần chụp (`captured_picture/`):**
-  * `captured_picture/N07.png` *(đã có)*: Docker Desktop / `docker ps` hiển thị container `thingsboard-local` đang chạy cổng `9090` & `1883`.
-  * `captured_picture/T05.png` *(đã có)*: Terminal chạy `train_tinyml.py` hiển thị 2,500 mẫu, Accuracy 100%, Confusion Matrix và xuất thành công `tinyml_fire_model.h`.
-  * `captured_picture/T04_1.jpg` *(đã có)*: Ảnh chụp cận cảnh màn hình TFT nền xanh `"HE THONG AN TOAN"` kèm dòng `TinyML: X.X% (SAFE)`.
-  * `captured_picture/T08.png` *(đã có)*: Terminal hiển thị mở cổng COM, kết nối MQTT Broker và nhận dòng telemetry từ ESP32-S3.
+  * `captured_picture/N07.png`: Docker Desktop / `docker ps` hiển thị container `thingsboard-local` đang chạy cổng `9090` & `1883`.
+  * `captured_picture/T05.png`: Terminal chạy `train_tinyml.py` hiển thị 2,500 mẫu, Accuracy 100%, Confusion Matrix và xuất thành công `tinyml_fire_model.h`.
+  * `captured_picture/T04_1.jpg`: Ảnh chụp cận cảnh màn hình TFT nền xanh `"HE THONG AN TOAN"` kèm dòng `TinyML: X.X% (SAFE)`.
+  * `captured_picture/T08.png`: Terminal hiển thị mở cổng COM, kết nối MQTT Broker và nhận dòng telemetry từ ESP32-S3.
 
 ---
 
@@ -152,16 +164,16 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
   > *Vừa rồi là trạng thái hoạt động bình thường. Tiếp theo, em sẽ thử kích hoạt nguồn lửa thật ngay trước cảm biến để thầy xem toàn bộ hệ thống phản ứng khi có cháy như thế nào ạ."*
 
 * **Ảnh minh chứng cần chụp (`captured_picture/`):**
-  * `captured_picture/T09_1.png` *(đã có)*: Thẻ `AI Isolation Forest` ở trạng thái `NORMAL` kèm `Anomaly Score` thấp.
-  * `captured_picture/T10.png` *(đã có)*: Toàn cảnh giao diện Local SCADA Web Monitor (`http://localhost:5050`) ở trạng thái bình thường.
-  * `captured_picture/T11.png` *(đã có)*: Toàn cảnh ThingsBoard Industrial Dashboard cập nhật biểu đồ real-time.
-  * `captured_picture/N06.png` *(đã có)*: Khung `Real-Time Station Event Log` trên giao diện Local SCADA.
+  * `captured_picture/T09_1.png`: Thẻ `AI Isolation Forest` ở trạng thái `NORMAL` kèm `Anomaly Score` thấp.
+  * `captured_picture/T10.png`: Toàn cảnh giao diện Local SCADA Web Monitor (`http://localhost:5050`) ở trạng thái bình thường.
+  * `captured_picture/T11.png`: Toàn cảnh ThingsBoard Industrial Dashboard cập nhật biểu đồ real-time.
+  * `captured_picture/N06.png`: Khung `Real-Time Station Event Log` trên giao diện Local SCADA.
 
 ---
 
 ### Phân cảnh 3: Kích hoạt kịch bản cháy/khói, Suy luận TinyML & Tự động hóa Rule Chain *(3:00 – 4:45)*
 
-* **Tiêu chí demo:** **T04**, **T09**, **T11**, **T12**, **N06**.
+* **Tiêu chí demo:** **T04**, **T09**, **T11**, **T12**, **T13** *(Bổ sung)*, **N06**.
 
 #### Bước 3.1: Quẹt lửa / tạo khói & Quan sát phản ứng phần cứng (`T04`)
 
@@ -194,14 +206,35 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
   * **Quay nhanh camera phần cứng + Dashboard:** TFT tự chuyển về nền xanh `"HE THONG AN TOAN"`, `TinyML` về `SAFE`, Servo xoay lại `0°` mở cửa, còi/LED tắt, Rule Chain tự xóa Alarm.
 * **Lời thoại gợi ý (Voiceover):**
   > *"Tất cả luồng xử lý thông minh phía server đều do **Rule Chain** đảm nhiệm — đây là tiêu chí **T12**. Như thầy thấy trên sơ đồ `Fire Alarm Rule Chain`, gói tin đi qua node `Filter Telemetry` sẽ vừa được lưu vào lịch sử qua `Save Telemetry`, vừa đưa qua node `Evaluate Fire Risk` để đánh giá ngưỡng cháy và kết quả AI. Nếu vượt ngưỡng sẽ đi nhánh `True` kích hoạt `Create Fire Alarm`, còn khi môi trường an toàn trở lại sẽ tự đi nhánh `False` sang `Clear Fire Alarm`.*
-  > *Bây giờ em đưa bật lửa ra xa để cảm biến hạ xuống dưới ngưỡng an toàn. Thầy thấy màn hình TFT tự động quay lại nền xanh `HE THONG AN TOAN`, cửa Servo mở lại về `0 độ`, còi và đèn tự động tắt, còn trên ThingsBoard thì Alarm cũng được tự động xóa.*
-  > *Sau kịch bản cháy tự động, ở phần cuối cùng em xin demo khả năng điều khiển 2 chiều từ xa bằng RPC, kiểm thử rớt mạng với bộ nhớ đệm SQLite và cuối cùng là chạy hoàn toàn không dây qua Bluetooth BLE ạ."*
+  > *Bây giờ em đưa bật lửa ra xa để cảm biến hạ xuống dưới ngưỡng an toàn. Thầy thấy màn hình TFT tự động quay lại nền xanh `HE THONG AN TOAN`, cửa Servo mở lại về `0 độ`, còi và đèn tự động tắt, còn trên ThingsBoard thì Alarm cũng được tự động xóa."*
+
+#### Bước 3.4 *(Bổ sung)*: Tích hợp 4 Cấp Độ Báo Động & Dispatch Email tới Customer A, B, C (`T13`)
+
+* **Thao tác & Góc quay:**
+  * Khi cháy xảy ra, chỉ chuột vào cửa sổ Terminal của Local Gateway hiển thị khung phát tán email:
+    ```
+    ======================================================================
+    [TIER 4 NOTIFICATION] DISPATCHING EMERGENCY FIRE EMAILS TO CUSTOMERS A, B, C
+     -> Email successfully dispatched to: customera@gmail.com
+     -> Email successfully dispatched to: customerb@gmail.com
+     -> Email successfully dispatched to: customerc@gmail.com
+    ======================================================================
+    ```
+  * Mở file `03_CoreIOT_Config/email_dispatch_log.txt` (hoặc chạy lệnh `python 03_CoreIOT_Config/scripts/setup_customer_notifications.py --test-email`).
+  * Chỉ rõ trong file log: Mốc thời gian, Severity: `CRITICAL FIRE HAZARD`, Target Emails, các chỉ số cảm biến (`Smoke`, `Temp`, `Flame`, `TinyML Risk`), và 4 cấp độ hành động.
+  * Chuyển nhanh qua tab `localhost:5050` mục **Real-Time Station Event Log** chỉ dòng:  
+    `[TIER 4 BROADCAST] Emergency email dispatched to: customera@gmail.com, customerb@gmail.com, customerc@gmail.com`.
+* **Lời thoại gợi ý (Voiceover):**
+  > *"Đặc biệt, để nâng cấp khả năng ứng phó sự cố và đáp ứng tiêu chí **T13** về Notification cảnh báo khi vượt ngưỡng, nhóm em đã tích hợp mô hình cảnh báo 4 cấp độ đồng bộ:*  
+  > *Cấp 1 là phần cứng End-Node, Cấp 2 là SCADA 5050, Cấp 3 là Rule Chain Cloud. Và ở **Cấp độ 4**, hệ thống tự động kích hoạt Notification Center và Email Dispatcher: ngay khi có cháy, Gateway lập tức phát email khẩn cấp đến 3 đối tượng khách hàng là `Customer A` (căn hộ dân cư), `Customer B` (văn phòng thương mại), và `Customer C` (đội phòng cháy chữa cháy).*  
+  > *Toàn bộ nội dung email kèm thông số đo đạc thời gian thực được ghi nhận minh bạch vào file kiểm toán `email_dispatch_log.txt` như thầy thấy trên màn hình."*
 
 * **Ảnh minh chứng cần chụp (`captured_picture/`):**
-  * `captured_picture/T04_2.jpg` *(đã có)*: Cận cảnh màn hình TFT nền đỏ `"CANH BAO CHAY!"` kèm `TinyML: 9x.x% (CRITICAL)` và Servo đã xoay sang góc đóng cửa ngăn cháy.
-  * `captured_picture/T04_3.png` *(đã có)*: Terminal ghi lại quá trình chuyển trạng thái từ `AN TOAN` sang `CANH BAO` kèm `AI Risk` tăng vọt.
-  * `captured_picture/T09_2.png` *(đã có)*: Thẻ `AI Isolation Forest` chuyển đỏ `ANOMALY DETECTED` kèm `Anomaly Score >= 0.90`.
-  * `captured_picture/T12.png` *(đã có)*: Sơ đồ `Fire Alarm Rule Chain` trên giao diện ThingsBoard.
+  * `captured_picture/T04_2.jpg`: Cận cảnh màn hình TFT nền đỏ `"CANH BAO CHAY!"` kèm `TinyML: 9x.x% (CRITICAL)` và Servo đã xoay sang góc đóng cửa ngăn cháy.
+  * `captured_picture/T04_3.png`: Terminal ghi lại quá trình chuyển trạng thái từ `AN TOAN` sang `CANH BAO` kèm `AI Risk` tăng vọt.
+  * `captured_picture/T09_2.png`: Thẻ `AI Isolation Forest` chuyển đỏ `ANOMALY DETECTED` kèm `Anomaly Score >= 0.90`.
+  * `captured_picture/T12.png`: Sơ đồ `Fire Alarm Rule Chain` trên giao diện ThingsBoard.
+  * `captured_picture/T13.png` *(Bổ sung)*: Terminal hiển thị bảng dispatch email tới Customer A, B, C & nội dung file `email_dispatch_log.txt`.
 
 ---
 
@@ -263,41 +296,84 @@ $$\text{Điểm BTL} = \min\!\left(8.0;\ \sum \text{Công nghệ}\right) + \text
   * Chỉ nhanh trên `localhost:5050`: đèn chế độ đổi thành **`Mode: Wireless BLE (YoloUNO_FireNode)`**.
   * Bấm thử 1 nút bật/tắt LED hoặc Servo trên Dashboard $\rightarrow$ Terminal hiện `[BLE Adapter TX -> ESP32-S3] {...}` và mạch phản hồi không dây ngay lập tức.
 * **Lời thoại gợi ý (Voiceover):**
-  > *"Và tính năng cuối cùng nhóm em muốn trình bày là tiêu chí **T03** — kết nối cảm biến không dây qua chuẩn Bluetooth Low Energy (BLE). Em dừng chế độ UART, rút hẳn dây USB ra khỏi máy tính và cấp nguồn cho mạch ESP32-S3 bằng nguồn rời để thầy thấy hai bên hoàn toàn không nối dây với nhau.*
-  > *Bây giờ em chạy lại hệ thống với cờ không dây `python run_system.py --ble`. Thư viện `bleak` trên Local Gateway tự động quét và kết nối tới thiết bị `YoloUNO_FireNode`, đăng ký nhận dữ liệu qua BLE GATT Notify. Như thầy thấy trên Terminal, dòng `[BLE RX ESP32-S3]` đã bắt đầu chảy về đều đặn và cập nhật lên cả hai Dashboard với chế độ hiển thị `Wireless BLE`. Em thử bấm bật đèn/cửa trên web thì lệnh cũng truyền ngược không dây qua BLE (`[BLE Adapter TX -> ESP32-S3]`) xuống mạch thực thi ngay lập tức.*
-  > *Như vậy, nhóm em đã demo hoàn chỉnh toàn bộ hệ thống từ triển khai ThingsBoard local (**N07**), huấn luyện và chạy Dual-AI (**T04, T05, T09**), Local Gateway UART/BLE kèm chịu lỗi SQLite (**T03, T08, T15**), đến giao diện SCADA và ThingsBoard Rule Chain (**T10, T11, T12, N06**). Nhóm em xin cảm ơn thầy đã theo dõi video demo của nhóm ạ!"*
+  > *"Và tính năng kết nối không dây của tiêu chí **T03** là giao tiếp cảm biến qua Bluetooth Low Energy (BLE). Em dừng chế độ UART, rút hẳn dây USB ra khỏi máy tính và cấp nguồn cho mạch ESP32-S3 bằng nguồn rời để thầy thấy hai bên hoàn toàn không nối dây với nhau.*
+  > *Bây giờ em chạy lại hệ thống với cờ không dây `python run_system.py --ble`. Thư viện `bleak` trên Local Gateway tự động quét và kết nối tới thiết bị `YoloUNO_FireNode`, đăng ký nhận dữ liệu qua BLE GATT Notify. Như thầy thấy trên Terminal, dòng `[BLE RX ESP32-S3]` đã bắt đầu chảy về đều đặn và cập nhật lên cả hai Dashboard với chế độ hiển thị `Wireless BLE`. Em thử bấm bật đèn/cửa trên web thì lệnh cũng truyền ngược không dây qua BLE (`[BLE Adapter TX -> ESP32-S3]`) xuống mạch thực thi ngay lập tức."*
 
 * **Ảnh minh chứng cần chụp (`captured_picture/`):**
-  * `captured_picture/T15_1.png` *(cần chụp bổ sung)*: Màn hình ThingsBoard Device `FireAlarm_Gateway` thể hiện `Is gateway: TRUE` (và tab `Relations` nếu dùng `--gateway-api`).
-  * `captured_picture/T15_2.png` *(cần chụp bổ sung)*: Terminal & giao diện `localhost:5050` khi `docker pause` hiển thị `CoreIOT: Offline (Buffering)` và `Buffer: X` tăng dần.
-  * `captured_picture/T15_3.png` *(cần chụp bổ sung)*: Terminal hiển thị `[Buffer Sync] Synchronized X buffered records to CoreIOT` và `Buffer: 0` sau khi `docker unpause`.
-  * `captured_picture/T03_1.png` *(cần chụp bổ sung)*: Terminal chạy `python run_system.py --ble` hiển thị kết nối thành công tới `YoloUNO_FireNode`, nhận `[BLE RX ESP32-S3]` và truyền `[BLE Adapter TX -> ESP32-S3]`.
-  * `captured_picture/T03_2.jpg` *(cần chụp bổ sung)*: Ảnh chụp thực tế mạch ESP32-S3 cấp nguồn bằng pin dự phòng/củ sạc (không cắm dây USB vào laptop) nhưng Dashboard trên laptop vẫn nhận dữ liệu thời gian thực.
+  * `captured_picture/T15_1.png`: Màn hình ThingsBoard Device `FireAlarm_Gateway` thể hiện `Is gateway: TRUE` (và tab `Relations` nếu dùng `--gateway-api`).
+  * `captured_picture/T15_2.png`: Terminal & giao diện `localhost:5050` khi `docker pause` hiển thị `CoreIOT: Offline (Buffering)` và `Buffer: X` tăng dần.
+  * `captured_picture/T15_3.png`: Terminal hiển thị `[Buffer Sync] Synchronized X buffered records to CoreIOT` và `Buffer: 0` sau khi `docker unpause`.
+  * `captured_picture/T03_1.png`: Terminal chạy `python run_system.py --ble` hiển thị kết nối thành công tới `YoloUNO_FireNode`, nhận `[BLE RX ESP32-S3]` và truyền `[BLE Adapter TX -> ESP32-S3]`.
+  * `captured_picture/T03_2.jpg`: Ảnh chụp thực tế mạch ESP32-S3 cấp nguồn bằng pin dự phòng/củ sạc (không cắm dây USB vào laptop) nhưng Dashboard trên laptop vẫn nhận dữ liệu thời gian thực.
+
+---
+
+### Phân cảnh 5 *(Bổ sung Mới)*: Nâng cấp Firmware Over-The-Air (OTA) Không Dây qua Wi-Fi / ThingsBoard (`T14`) *(7:00 – 8:15)*
+
+* **Tiêu chí demo:** **T14**, **T03**, **T08**.
+
+#### Bước 5.1: Bối cảnh mạch chạy độc lập & Chuẩn bị OTA (`T14`)
+* **Thao tác & Góc quay:**
+  * Quay camera phần cứng: Mạch ESP32-S3 đang đặt từ xa, cấp nguồn bằng pin sạc/sạc rời (không cắm dây USB vào máy tính).
+  * Mạch đang kết nối BLE truyền telemetry với Gateway bình thường, đồng thời kết nối Wi-Fi nền (`172.20.10.5`).
+  * Màn hình TFT 320x240 hiển thị phiên bản hiện tại là `v1.0.1`.
+* **Lời thoại gợi ý (Voiceover):**
+  > *"Để hoàn thiện tiêu chí công nghệ nâng cấp firmware từ xa **T14** (2.0 điểm), nhóm em xin demo tính năng nạp Firmware OTA hoàn toàn không dây.*  
+  > *Trong các tòa nhà thông minh, mạch cảm biến báo cháy gắn trên trần cao hoặc phòng kỹ thuật không thể tháo dỡ để cắm cáp nạp lại. Hiện tại mạch YoloUNO đang chạy phiên bản `v1.0.1`, vừa kết nối BLE với Gateway vừa duy trì kết nối Wi-Fi nền sẵn sàng nhận cập nhật OTA từ ThingsBoard."*
+
+#### Bước 5.2: Phân phối Firmware v1.0.2 và Nạp từ xa qua Wi-Fi
+* **Thao tác & Góc quay:**
+  * Mở cửa sổ PowerShell mới, chạy script gán firmware phiên bản mới `v1.0.2`:
+    ```powershell
+    python 02_Local_Gateway/dashboard/upload_ota_firmware.py
+    ```
+  * Chỉ chuột vào màn hình Terminal của Local Gateway:
+    - Gateway tự động phát hiện bản `v1.0.2`: `[CoreIOT Web OTA] New firmware package assigned from Web UI!`.
+    - Thông báo trạng thái: `DOWNLOADING...` $\rightarrow$ Tải file `firmware_ota.bin` (842,784 bytes) $\rightarrow$ Xác thực SHA256.
+    - Tiến hành nạp: `Pushing binary over Wi-Fi via ArduinoOTA to 172.20.10.5:3232...`.
+    - Hoàn tất: `Wireless ArduinoOTA flash succeeded! Device updated to v1.0.2`.
+  * **Quay camera phần cứng:** Mạch ESP32-S3 tự động khởi động lại không dây, màn hình TFT sáng lên với dòng chữ phiên bản mới **`v1.0.2 (OTA)`**, đèn Warning LED nhấp nháy chu kỳ 500ms (tính năng mới của bản 1.0.2) chứng minh bản firmware mới đã được nạp thành công 100% qua sóng Wi-Fi.
+* **Lời thoại gợi ý (Voiceover):**
+  > *"Khi bản firmware `v1.0.2` được phân phối từ ThingsBoard, Gateway tự động tải về, kiểm tra mã băm SHA256 và truyền trực tiếp qua sóng Wi-Fi vào mạch ESP32-S3 qua giao thức ArduinoOTA trên cổng 3232.*  
+  > *Mạch tự khởi động lại và như thầy thấy ở góc camera, màn hình TFT lập tức hiển thị phiên bản mới `v1.0.2 (OTA)` cùng nhịp đèn LED nhấp nháy heartbeat — toàn bộ quá trình diễn ra hoàn toàn không dây mà không cần cắm lại bất kỳ sợi cáp nào vào máy tính."*
+
+#### Bước 5.3: Lời kết video demo
+* **Lời thoại gợi ý (Voiceover):**
+  > *"Như vậy, nhóm em đã trình bày và kiểm chứng thực tế toàn bộ các tiêu chí: Triển khai ThingsBoard Local Docker (**N07**), quy trình huấn luyện và chạy Dual-AI TinyML + Isolation Forest (**T04, T05, T09**), Local Gateway giao tiếp UART/BLE không dây (**T03, T08**), SCADA Dashboard tự thiết kế ghi nhận sự kiện (**T10, N06**), Rule Chain thông minh (**T11, T12**), cảnh báo khẩn cấp 4 cấp độ gửi email tới khách hàng (**T13**), chịu lỗi mất mạng đồng bộ SQLite WAL (**T15**), và nâng cấp firmware OTA từ xa (**T14**).*  
+  > *Nhóm em xin chân thành cảm ơn thầy Lê Trọng Nhân và quý thầy cô đã theo dõi video báo cáo của nhóm ạ!"*
+
+* **Ảnh minh chứng cần chụp (`captured_picture/`):**
+  * `captured_picture/T14_1.png`: Terminal Gateway hiển thị các bước OTA: DOWNLOADING, VERIFIED, ArduinoOTA push thành công và cập nhật lên `v1.0.2`.
+  * `captured_picture/T14_2.jpg`: Ảnh chụp cận cảnh màn hình TFT hiển thị phiên bản mới `v1.0.2 (OTA)` sau khi nạp không dây.
 
 ---
 
 ## Phần 3: Các điểm cần chỉnh sửa / lưu ý từ Codebase Audit để đạt điểm tối đa
 
-Trước khi bấm máy quay demo, nhóm nên xử lý nhanh 4 điểm lệch kỹ thuật nhỏ vừa phát hiện khi rà soát mã nguồn:
+Trước khi bấm máy quay demo, nhóm nên rà soát lại các điểm kỹ thuật sau để video chạy mượt mà:
 
 1. **Tiêu chí `T12` (`03_CoreIOT_Config/rule_chains/fire_alarm_rule_chain.json` & `setup_rule_chain.py`):**
-   * File `fire_alarm_rule_chain.json` hiện đang kiểm tra key `msg.smoke_level > 400` và `msg.tinyml_fire`, trong khi `LocalGateway.py` gửi key **`smoke`** (ADC 0–4095, ngưỡng `1800`), **`flame`**, **`temperature`**, **`tinyml_risk`**, **`is_anomaly`**.
-   * `setup_rule_chain.py` đang để mặc định `--port 8080`, trong khi Docker ThingsBoard chạy cổng **`9090`**.
-   * **Khuyến nghị:** Export lại bản Rule Chain đang chạy thực tế trên ThingsBoard `localhost:9090` đè vào `fire_alarm_rule_chain.json` (dùng đúng key `msg.smoke >= 1800 || msg.flame == 1 || msg.temperature >= 35.0 || msg.tinyml_risk >= 70.0`) để khớp 100% giữa repo và video.
-2. **Tiêu chí `T15` (Cờ `--gateway-api` trong `LocalGateway.py` & `run_system.py`):**
-   * Hiện `use_gateway_api` mặc định là `False` (gửi qua `v1/devices/me/telemetry` lên thẳng thiết bị `FireAlarm_Gateway`). Nếu muốn quay cảnh tạo thiết bị con `YOLOUNO_FIRE_NODE_01` trong tab **Relations** qua topic `v1/gateway/telemetry`, hãy chạy `LocalGateway.py --gateway-api` (và đảm bảo Entity Alias của Dashboard trỏ đúng về thiết bị nhận telemetry).
-3. **Tiêu chí `T03` (`BLE2902` Descriptor trong `01_Firmware_EndNode/src/main.cpp`):**
-   * Dòng 10 đã `#include <BLE2902.h>`, nhưng hàm `initBle()` (dòng 260) chưa gọi `pTelemetryCharacteristic->addDescriptor(new BLE2902());`. Nên kiểm thử trước `python run_system.py --ble` trên Windows; nếu `bleak` báo lỗi khi `start_notify`, hãy thêm dòng `pTelemetryCharacteristic->addDescriptor(new BLE2902());` và nạp lại firmware.
-4. **Tiêu chí `N03` (LVGL):**
+   * File `fire_alarm_rule_chain.json` đã được cập nhật kiểm tra đầy đủ cả `msg.smoke`, `msg.smoke_level`, `msg.flame`, `msg.temperature` và cờ TinyML, đồng thời tự động lưu vết danh sách email khách hàng nhận tin khẩn cấp `customera@gmail.com, customerb@gmail.com, customerc@gmail.com`.
+   * Script `setup_rule_chain.py` hỗ trợ nạp tự động lên ThingsBoard cổng `9090`.
+2. **Tiêu chí `T13` (Notification Center & Email Dispatch):**
+   * Chạy script `python 03_CoreIOT_Config/scripts/setup_customer_notifications.py --test-email` để kiểm tra việc ghi nhận log vào `03_CoreIOT_Config/email_dispatch_log.txt` trước khi quay.
+3. **Tiêu chí `T14` (Firmware OTA):**
+   * Đảm bảo laptop và ESP32-S3 đang kết nối cùng mạng Wi-Fi (hoặc phát Wi-Fi từ điện thoại với SSID `Pham Trung` / `14052006`).
+   * Hai file firmware nhị phân đã biên dịch sẵn trong `01_Firmware_EndNode/`: `firmware_v1.0.1.bin` và `firmware_v1.0.2.bin`.
+4. **Tiêu chí `T03` (Bluetooth Low Energy):**
+   * Local Gateway tự động dò tìm theo cả tên `YoloUNO_FireNode` và địa chỉ MAC `10:20:BA:06:57:7D`, kết nối nhanh trong vòng 1 giây trên Windows.
+5. **Tiêu chí `N03` (LVGL):**
    * Không ghi `N03` vào Bảng tự đánh giá trong báo cáo vì firmware hiện dùng `Adafruit_ILI9341` (dù có file `lv_conf.h`). Nhóm đã đạt tối đa **1.0/1.0 điểm Nâng cao** từ **`N06` + `N07`** mà không cần `N03`.
 
 ---
 
 ## Phần 4: Checklist kiểm tra nhanh trước khi quay video
 
-- [ ] **Docker Desktop** đang chạy, container `thingsboard-local` trạng thái `Running` (`localhost:9090` & `localhost:1883`).
-- [ ] Đã kiểm tra **Rule Chain** trên ThingsBoard nhận đúng key telemetry (`smoke`, `flame`, `temperature`, `tinyml_risk`) và tạo/xóa Alarm trơn tru.
-- [ ] Mạch **ESP32-S3 YoloUNO** đã nạp firmware mới nhất (`01_Firmware_EndNode/src/main.cpp`), màn hình TFT hiển thị rõ nét dòng `TinyML: X.X% (SAFE)`.
-- [ ] Chuẩn bị sẵn **bật lửa** (test Flame/MQ-2), **pin dự phòng / củ sạc rời** (cho Phân cảnh 4 demo BLE không dây `T03`), và bật sẵn **Bluetooth** trên máy tính.
-- [ ] Mở sẵn 2 cửa sổ PowerShell (1 cửa sổ chạy `run_system.py`, 1 cửa sổ gõ `docker pause/unpause`), bố trí sẵn 2 tab trình duyệt `http://localhost:5050` và `http://localhost:9090`.
-- [ ] Kiểm tra danh sách ảnh còn thiếu cần chụp bù vào `captured_picture/`: `T03_1.png`, `T03_2.jpg`, `T15_1.png`, `T15_2.png`, `T15_3.png`.
+- [ ] **Docker Desktop:** Container `thingsboard-local` đang chạy (`localhost:9090` và `localhost:1883`).
+- [ ] **Rule Chain & Notifications:** Đã kiểm tra Rule Chain và Notification Center hoạt động trơn tru.
+- [ ] **Hardware:** Mạch **ESP32-S3 YoloUNO** đã nạp sẵn firmware v1.0.1, màn hình TFT hiển thị rõ nét `TinyML: X.X% (SAFE)`.
+- [ ] **Dụng cụ thử nghiệm:** Bật lửa gas (để thử cảm biến lửa và khói), pin dự phòng hoặc sạc điện thoại rời (cho demo BLE không dây và OTA).
+- [ ] **Kết nối mạng:** Laptop đã bật Bluetooth; mạng Wi-Fi phát trùng SSID và mật khẩu đã cấu hình trong firmware (`Pham Trung` / `14052006`).
+- [ ] **Màn hình máy tính:** Sắp xếp cửa sổ Terminal bên trái, trình duyệt 3 tab bên phải (`localhost:5050`, `localhost:9090`, và thư mục kiểm toán log).
+- [ ] **Kiểm tra ảnh minh chứng cần chụp:** `T03_1.png`, `T03_2.jpg`, `T13.png`, `T14_1.png`, `T14_2.jpg`, `T15_1.png`, `T15_2.png`, `T15_3.png`.
+- [ ] **Phần mềm quay video:** OBS Studio hoặc phím tắt `Windows + Alt + R` (Game Bar), micro thu âm rõ ràng.

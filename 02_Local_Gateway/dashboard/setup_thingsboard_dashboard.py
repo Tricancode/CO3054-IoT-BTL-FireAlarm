@@ -197,7 +197,6 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
     id_anom_status = "a1111111-0000-0000-0000-000000000007"
     id_anom_score = "a1111111-0000-0000-0000-000000000008"
     id_temp_card = "a1111111-0000-0000-0000-000000000009"
-    id_alarm_notification = "a1111111-0000-0000-0000-000000000010"
 
     # --- 1. Smoke Radial Gauge ---
     smoke_cfg = copy.deepcopy(templates.get("radial_gauge", {}))
@@ -449,34 +448,6 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
         }
     ]
 
-    # --- 10. T13: In-App Emergency Alarm Notification Widget ---
-    alarm_notif_cfg = copy.deepcopy(templates.get("value_card", {}))
-    alarm_notif_cfg["title"] = "T13: Emergency Alarm Notification (In-App Feed)"
-    alarm_notif_cfg["showTitle"] = True
-    alarm_notif_cfg["units"] = ""
-    alarm_notif_cfg.setdefault("settings", {})
-    alarm_notif_cfg["settings"]["showIcon"] = True
-    alarm_notif_cfg["settings"]["icon"] = "notifications_active"
-    alarm_notif_cfg["settings"]["layout"] = "left"
-    alarm_notif_cfg["settings"]["showLabel"] = True
-    alarm_notif_cfg["settings"]["labelPosition"] = "top"
-    alarm_notif_cfg["datasources"] = [
-        {
-            "type": "entity",
-            "entityAliasId": alias_id,
-            "dataKeys": [
-                {
-                    "name": "alarm_notification",
-                    "type": "timeseries",
-                    "label": "Live Notification Feed",
-                    "color": "#f44336",
-                    "settings": {},
-                    "_hash": 0.61
-                }
-            ]
-        }
-    ]
-
     # Widgets definition
     widgets = {
         id_smoke_gauge: {
@@ -568,16 +539,6 @@ def generate_dashboard_json(device_id: str, templates: dict) -> dict:
             "row": 6,
             "col": 21,
             "config": led_cfg
-        },
-        id_alarm_notification: {
-            "id": id_alarm_notification,
-            "type": "latest",
-            "typeFullFqn": "system.cards.value_card",
-            "sizeX": 24,
-            "sizeY": 3,
-            "row": 13,
-            "col": 0,
-            "config": alarm_notif_cfg
         }
     }
 

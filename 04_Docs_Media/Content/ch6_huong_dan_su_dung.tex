@@ -1,0 +1,104 @@
+\section{HƯỚNG DẪN SỬ DỤNG MÃ NGUỒN}
+
+Chương này cung cấp tài liệu hướng dẫn kỹ thuật chi tiết giúp giảng viên và người phát triển khác có thể thiết lập môi trường, biên dịch, nạp firmware và vận hành toàn bộ hệ thống từ kho mã nguồn một cách nhanh chóng và chính xác.
+
+% =========================================================================
+\subsection{Đường dẫn và cấu trúc thư mục}
+Toàn bộ mã nguồn dự án được lưu trữ và quản lý tập trung trên kho chứa Git:
+\begin{center}
+\textbf{Repository URL:} \url{https://github.com/phamngocbao/CO3054-IoT-BTL-FireAlarm}
+\end{center}
+
+Cấu trúc cây thư mục chuẩn mực của dự án:
+\begin{lstlisting}[style=mystyle]
+CO3054-IoT-BTL-FireAlarm/
+|-- 01_Firmware_EndNode/       # Ma nguon C++ nhung tren vi dieu khien ESP32-S3
+|   |-- include/               # Header TinyML tinyml_fire_model.h & cau hinh
+|   |-- src/main.cpp           # Luong xu ly FreeRTOS & truyen thong JSON
+|   `-- platformio.ini         # Cau hinh bien dich PlatformIO
+|-- 02_Local_Gateway/          # Ma nguon IoT Gateway chay tren PC
+|   |-- hardware_gateway/      # LocalGateway.py, SQLite WAL, sync_worker
+|   `-- dashboard/             # Flask Web SCADA 5050 & script setup Dashboard
+|-- 03_CoreIOT_Config/         # Cau hinh ThingsBoard Cloud CE
+|   |-- rule_chains/           # JSON RuleChain xu ly canh bao khan cap
+|   `-- scripts/               # Script tu dong hoa khoi tao RuleChain
+|-- 04_Docs_Media/             # Bao cao ky thuat LaTeX & video demo
+|-- 05_Guideline/              # De bai va mau bao cao huong dan BTL
+|-- captured_picture/          # Hinh anh minh chung 11 tieu chi ky thuat
+|-- gateway_hardware_buffer.db # CSDL dem ngoai tuyen SQLite WAL
+|-- run_system.py              # Script dieu phoi khoi dong he thong 1 lenh duy nhat
+`-- README.md                  # Tai lieu tong quan va huong dan su dung nhanh
+\end{lstlisting}
+
+% =========================================================================
+\subsection{Yêu cầu môi trường}
+\subsubsection{Yêu cầu phần cứng}
+\begin{itemize}
+    \item 01 Bo mạch YoloUNO (ESP32-S3) kèm cáp kết nối USB Type-C.
+    \item 01 Cảm biến khói và khí gas MQ-2.
+    \item 01 Cảm biến phát hiện ngọn lửa (Flame Sensor hồng ngoại).
+    \item 01 Cảm biến nhiệt độ và độ ẩm DHT20.
+    \item 01 Còi buzzer 5V và 01 Relay điều khiển tải 5VDC.
+    \item 01 Máy tính PC/Laptop hệ điều hành Windows 10/11 hoặc Ubuntu Linux (đóng vai trò Local Gateway).
+\end{itemize}
+
+\subsubsection{Yêu cầu phần mềm}
+\begin{itemize}
+    \item \textbf{Python:} Phiên bản 3.10 trở lên.
+    \item \textbf{Docker Desktop:} Dùng để chạy máy chủ ThingsBoard Community Edition.
+    \item \textbf{VS Code kèm PlatformIO IDE:} Dùng để biên dịch và nạp firmware cho ESP32-S3.
+    \item \textbf{Các thư viện Python cần thiết:} Cài đặt tự động qua lệnh:
+    \begin{lstlisting}[language=bash, style=mystyle]
+pip install paho-mqtt flask pyserial requests scikit-learn
+    \end{lstlisting}
+\end{itemize}
+
+% =========================================================================
+\subsection{Cài đặt và cấu hình}
+\subsubsection{Khởi chạy ThingsBoard Local trên Docker}
+Nếu chưa có container ThingsBoard chạy sẵn, thực hiện chạy lệnh Docker:
+\begin{lstlisting}[language=bash, style=mystyle]
+docker run -d --name thingsboard-local -p 9090:9090 -p 1883:1883 \
+    -v ~/.mytb-data:/data thingsboard/tb-postgres:latest
+\end{lstlisting}
+Truy cập trang quản trị ThingsBoard tại địa chỉ: \url{http://localhost:9090} (tài khoản mặc định: \texttt{tenant@thingsboard.org} / mật khẩu: \texttt{tenant}).
+
+\subsubsection{Khởi tạo Dashboard và RuleChain tự động}
+Nhóm đã phát triển các script Python tự động hóa việc đẩy cấu hình lên ThingsBoard qua REST API mà không cần thao tác thủ công bằng tay:
+\begin{lstlisting}[language=bash, style=mystyle]
+# Khoi tao Dashboard 10 Widgets
+python 02_Local_Gateway/dashboard/setup_thingsboard_dashboard.py
+
+# Khoi tao va kich hoat RuleChain tu dong
+python 03_CoreIOT_Config/scripts/setup_rule_chain.py --port 9090
+\end{lstlisting}
+
+% =========================================================================
+\subsection{Biên dịch, nạp và vận hành}
+\subsubsection{Nạp Firmware lên ESP32-S3}
+Mở thư mục \texttt{01\_Firmware\_EndNode} trong VS Code (PlatformIO) hoặc thực hiện qua terminal:
+\begin{lstlisting}[language=bash, style=mystyle]
+cd 01_Firmware_EndNode
+pio run -t upload
+\end{lstlisting}
+
+\subsubsection{Vận hành toàn bộ hệ thống bằng một lệnh duy nhất}
+Để đơn giản hóa tối đa quy trình khởi động cho người dùng và ban giám khảo, nhóm đã xây dựng script điều phối gốc \texttt{run\_system.py}:
+\begin{lstlisting}[language=bash, style=mystyle]
+cd c:\261\IOT\CO3054-IoT-BTL-FireAlarm
+python run_system.py
+\end{lstlisting}
+
+Script \texttt{run\_system.py} sẽ tự động thực hiện:
+\begin{enumerate}
+    \item Tự động quét và phát hiện cổng COM kết nối với ESP32-S3 (ví dụ: \texttt{COM3}).
+    \item Kiểm tra kết nối tới Docker ThingsBoard MQTT Broker (\texttt{localhost:1883}).
+    \item Khởi chạy song song máy chủ SCADA Web UI tại địa chỉ: \url{http://localhost:5050}.
+    \item Khởi tạo tiến trình nền của CSDL SQLite WAL \texttt{gateway\_hardware\_buffer.db} và kích hoạt luồng tự động đồng bộ Store-and-Forward lên Cloud.
+\end{enumerate}
+
+Sau khi khởi chạy thành công, mở trình duyệt truy cập song song hai tab:
+\begin{itemize}
+    \item \textbf{Tab 1 -- Local SCADA:} \url{http://localhost:5050} (Giám sát tại chỗ độc lập, kiểm tra trạng thái Buffer SQLite WAL).
+    \item \textbf{Tab 2 -- ThingsBoard Cloud:} \url{http://localhost:9090} (Giám sát 10 Widgets, nhận thông báo cảnh báo Web Notification khẩn cấp và điều khiển Downlink RPC).
+\end{itemize}

@@ -158,6 +158,33 @@ def shutdown_handler(signum=None, frame=None):
 def main():
     parser = argparse.ArgumentParser(description="HCMUT IoT Fire Alarm - Master System Runner")
     parser.add_argument(
+        "--transport",
+        "-t",
+        choices=["serial", "ble"],
+        default="serial",
+        help="Transport mode to ESP32-S3: serial (UART USB) or ble (Wireless BLE)"
+    )
+    parser.add_argument(
+        "--ble",
+        action="store_true",
+        help="Run gateway in wireless BLE mode (connects to YoloUNO_FireNode without USB cable)"
+    )
+    parser.add_argument(
+        "--ble-name",
+        default="YoloUNO_FireNode",
+        help="Target BLE device advertising name (default: YoloUNO_FireNode)"
+    )
+    parser.add_argument(
+        "--ble-mac",
+        default=None,
+        help="Target BLE MAC address (e.g. 10:20:BA:06:57:7D)"
+    )
+    parser.add_argument(
+        "--esp32-ip",
+        default=None,
+        help="ESP32-S3 Wi-Fi IP address for ArduinoOTA (optional, auto-detected from telemetry)"
+    )
+    parser.add_argument(
         "--port",
         "-p",
         default=None,
@@ -201,24 +228,32 @@ def main():
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
+    is_ble = args.ble or args.transport == "ble"
+
     print("=" * 70)
     print("HCMUT IOT FIRE ALARM SYSTEM - MASTER HARDWARE LAUNCHER")
     print("=" * 70)
 
-    # 1. Serial Port Detection
-    detected_port = args.port or find_best_esp32_port()
-    ports_list = detect_usb_serial_ports()
-
-    print("[Hardware Info] Scanning available USB Serial COM ports:")
-    if ports_list:
-        for p in ports_list:
-            selected_marker = " <-- [SELECTED]" if p.device == detected_port else ""
-            print(f"  * {p.device:<10} | {p.description} {selected_marker}")
+    # 1. Port & Transport Detection
+    if is_ble:
+        print("[Transport Info] Wireless BLE Mode Selected")
+        print(f" -> Active Transport  : Wireless Bluetooth Low Energy (BLE)")
+        print(f" -> Target BLE Device : {args.ble_name}")
+        target_port = None
     else:
-        print("  * No active serial devices found! Please ensure ESP32-S3 USB cable is firmly plugged in.")
+        detected_port = args.port or find_best_esp32_port()
+        ports_list = detect_usb_serial_ports()
 
-    target_port = detected_port or ("COM3" if sys.platform == "win32" else "/dev/ttyUSB0")
-    print(f" -> Active UART Port  : {target_port} @ {args.baud} baud")
+        print("[Hardware Info] Scanning available USB Serial COM ports:")
+        if ports_list:
+            for p in ports_list:
+                selected_marker = " <-- [SELECTED]" if p.device == detected_port else ""
+                print(f"  * {p.device:<10} | {p.description} {selected_marker}")
+        else:
+            print("  * No active serial devices found! Please ensure ESP32-S3 USB cable is firmly plugged in.")
+
+        target_port = detected_port or ("COM3" if sys.platform == "win32" else "/dev/ttyUSB0")
+        print(f" -> Active UART Port  : {target_port} @ {args.baud} baud")
 
     # 2. Broker & ThingsBoard Resolution
     tb_local_active = is_local_thingsboard_active()
@@ -246,14 +281,31 @@ def main():
 
     # 4. Launch LocalGateway Process
     python_executable = sys.executable
-    gw_cmd = [
-        python_executable,
-        str(HW_GATEWAY_SCRIPT),
-        "--port", target_port,
-        "--baud", str(args.baud),
-        "--broker", broker,
-        "--token", args.token
-    ]
+    if is_ble:
+        gw_cmd = [
+            python_executable,
+            str(HW_GATEWAY_SCRIPT),
+            "--transport", "ble",
+            "--ble-name", args.ble_name,
+            "--broker", broker,
+            "--token", args.token
+        ]
+        if args.ble_mac:
+            gw_cmd.extend(["--ble-mac", args.ble_mac])
+        if args.esp32_ip:
+            gw_cmd.extend(["--esp32-ip", args.esp32_ip])
+    else:
+        gw_cmd = [
+            python_executable,
+            str(HW_GATEWAY_SCRIPT),
+            "--transport", "serial",
+            "--port", target_port,
+            "--baud", str(args.baud),
+            "--broker", broker,
+            "--token", args.token
+        ]
+        if args.esp32_ip:
+            gw_cmd.extend(["--esp32-ip", args.esp32_ip])
 
     print("[System Launcher] Launching Local Hardware Gateway subprocess...")
     gw_proc = subprocess.Popen(gw_cmd, cwd=str(GATEWAY_DIR))
@@ -267,9 +319,10 @@ def main():
         tb_is_local=(broker in ("127.0.0.1", "localhost") and tb_local_active)
     )
 
+    stream_source = "BLE" if is_ble else "ESP32-S3 UART"
     print("[System Launcher] System is fully operational.")
-    print(" -> Real-time sensor logs will stream directly from ESP32-S3 UART below.")
-    print(" -> Press Ctrl+C at any time to gracefully stop the Gateway and release the COM port.\n")
+    print(f" -> Real-time sensor logs will stream directly from {stream_source} below.")
+    print(" -> Press Ctrl+C at any time to gracefully stop the Gateway and release connections.\n")
 
     # Supervisor Loop
     try:

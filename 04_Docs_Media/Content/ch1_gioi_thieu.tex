@@ -1,0 +1,75 @@
+\section{GIỚI THIỆU}
+
+\subsection{Phát biểu vấn đề}
+Hỏa hoạn tại các khu dân cư, tòa nhà cao tầng và khu công nghiệp luôn là một trong những thảm họa gây thiệt hại nặng nề nhất về tính mạng con người và tài sản kinh tế. Theo thống kê của Cục Cảnh sát Phòng cháy Chữa cháy và Cứu nạn Cứu hộ, phần lớn các vụ hỏa hoạn nghiêm trọng bùng phát dữ dội là do việc phát hiện đám cháy bị chậm trễ trong những phút đầu tiên, hoặc do các hệ thống báo cháy truyền thống phát tín hiệu cảnh báo giả quá nhiều khiến con người lơ là mất cảnh giác.
+
+Các hệ thống báo cháy truyền thống hiện nay đang đối mặt với những thách thức công nghệ cốt lõi:
+\begin{itemize}
+    \item \textbf{Cảnh báo giả (False Positives):} Các cảm biến khói quang điện hoặc cảm biến khí bán dẫn thông thường thường kích hoạt báo động sai khi gặp khói nấu nướng, bụi mịn công nghiệp hoặc độ ẩm không khí tăng cao đột ngột.
+    \item \textbf{Phụ thuộc hoàn toàn vào mạng Internet (Single Point of Failure):} Các hệ thống IoT thuần đám mây (Pure Cloud IoT) đòi hỏi kết nối Internet 24/7 để đẩy dữ liệu lên máy chủ và suy luận. Khi hỏa hoạn xảy ra làm cháy dây cáp viễn thông hoặc cúp điện hạ thế dẫn đến mất mạng Internet, hệ thống bị tê liệt hoàn toàn, dẫn đến việc mất mát dữ liệu telemetry quan trọng và không thể điều khiển cơ cấu thoát hiểm.
+    \item \textbf{Độ trễ truyền tải cao:} Thời gian gửi dữ liệu lên server từ xa rồi phản hồi lệnh điều khiển đóng/mở cửa thoát hiểm thường mất từ 1 đến 3 giây, trong khi tình huống cháy đòi hỏi cơ cấu cách ly khói độc phải hành động trong vòng mili-giây.
+\end{itemize}
+
+Xuất phát từ thực tiễn trên, việc phát triển một \textbf{Hệ thống Báo cháy và Điều khiển Thoát hiểm Thông minh} kết hợp kiến trúc \textbf{Dual-AI} (Edge TinyML trên vi điều khiển ESP32-S3 và Fog Machine Learning trên Local Gateway PC) cùng cơ chế \textbf{Đệm ngoại tuyến SQLite WAL (Store-and-Forward)} là một giải pháp cấp thiết, mang tính đột phá về an toàn và độ tin cậy.
+
+\subsection{Các giải pháp liên quan}
+Qua khảo sát các nghiên cứu và sản phẩm thương mại hiện có~\cite{smart_fire_alarm_iot_2021}, các giải pháp hiện tại phân thành ba nhóm chính được so sánh tại Bảng~\ref{tab:so_sanh_giai_phap}.
+
+\begin{table}[H]
+\centering
+\caption{Bảng so sánh các giải pháp báo cháy hiện nay}
+\label{tab:so_sanh_giai_phap}
+\small
+\begin{tabular}{|p{3.2cm}|p{3.8cm}|p{4.2cm}|p{3.8cm}|}
+\hline
+\textbf{Đặc tính} & \textbf{Hệ thống báo cháy cổ điển} & \textbf{Hệ thống IoT thuần Cloud} & \textbf{Hệ thống đề tài (Dual-AI \& WAL)} \\ \hline
+\textbf{Cơ chế phát hiện} & So sánh ngưỡng đơn biến (Ngưỡng khói cố định) & Đẩy dữ liệu thô lên Cloud phân tích & Suy luận AI đa biến tại chỗ (<0.1ms) kết hợp Isolation Forest \\ \hline
+\textbf{Độ trễ phản ứng} & 1--3 giây & 800ms -- 3 giây (phụ thuộc băng thông) & Tức thời: <0.1ms tại Edge, <50ms tại Gateway \\ \hline
+\textbf{Khi rớt mạng Internet} & Báo động còi tại chỗ, không lưu dữ liệu & Tê liệt cảnh báo từ xa, mất mát toàn bộ dữ liệu & \textbf{Tự chủ 100\%}: lưu đệm SQLite WAL, tự đồng bộ bù khi có mạng \\ \hline
+\textbf{Giao diện giám sát} & Đèn LED tủ trung tâm & Web/App Cloud & \textbf{Dual-SCADA}: Web Local 5050 song song ThingsBoard Cloud \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Mục tiêu đề tài}
+Đề tài hướng tới việc thiết kế và hiện thực một hệ thống IoT hoàn chỉnh đạt các tiêu chuẩn công nghiệp sau:
+\begin{enumerate}
+    \item \textbf{Mục tiêu về AI trên thiết bị (TinyML - T04, T05):} Xây dựng công cụ huấn luyện tự động với 2,500 mẫu dữ liệu vật lý đa chiều, xuất mô hình phân loại nhị phân ra header C độc lập. Tốc độ suy luận trên vi điều khiển ESP32-S3 đạt $<0.1\text{ ms}$, tiêu thụ RAM $<128\text{ bytes}$, độ chính xác kiểm thử đạt $100.00\%$.
+    \item \textbf{Mục tiêu về IoT Gateway cục bộ (T08, T09, T10):} Xây dựng Local Gateway trên PC giao tiếp UART hai chiều ổn định ở tốc độ 115,200 baud; nhúng thuật toán Isolation Forest phát hiện bất thường môi trường; cung cấp giao diện SCADA Web Monitor chuẩn công nghiệp tại cổng 5050.
+    \item \textbf{Mục tiêu về Nền tảng CoreIOT / ThingsBoard (T11, T12, T13, T15):} Triển khai cụm máy chủ ThingsBoard Docker Localhost (N07); thiết kế Dashboard công nghiệp 10 widget; lập trình RuleChain 3 cấp độ tự động phân loại và dispatch lệnh RPC; gửi Notification cảnh báo khẩn cấp trực tiếp lên Web Dashboard; duy trì cơ chế đệm ngoại tuyến SQLite WAL không mất mát gói tin.
+\end{enumerate}
+
+\subsection{Đề xuất tính năng hệ thống}
+Toàn bộ tính năng của hệ thống được mã hóa định danh từ F01 đến F10 tại Bảng~\ref{tab:danh_sach_tinh_nang}.
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.25}
+\caption{Danh sách tính năng đề xuất của hệ thống}
+\label{tab:danh_sach_tinh_nang}
+\begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}X|>{\centering\arraybackslash}p{2.7cm}|>{\centering\arraybackslash}p{1.6cm}|}
+\hline
+\textbf{Mã} & \textbf{Mô tả tính năng} & \textbf{Thiết bị thực hiện} & \textbf{Mức ưu tiên} \\ \hline
+\textbf{F01} & Thu thập đa cảm biến (Khói MQ-2, Lửa hồng ngoại, Nhiệt/Ẩm DHT11) hiển thị trên màn hình TFT màu 320x240 & ESP32-S3 YoloUNO & Bắt buộc \\ \hline
+\textbf{F02} & Suy luận xác suất cháy thời gian thực bằng TinyML nhúng tại chỗ & ESP32-S3 YoloUNO & Bắt buộc \\ \hline
+\textbf{F03} & Tự động kích hoạt cơ cấu chấp hành tại chỗ: Mở cửa thoát hiểm Servo $90^\circ$, hú còi Buzzer, chớp đèn LED & ESP32-S3 YoloUNO & Bắt buộc \\ \hline
+\textbf{F04} & Đóng gói dữ liệu và truyền nhận hai chiều qua UART Serial chuẩn công nghiệp & ESP32-S3 \& Gateway & Bắt buộc \\ \hline
+\textbf{F05} & Phân tích bất thường môi trường bằng mô hình Machine Learning Isolation Forest & Local Gateway PC & Bắt buộc \\ \hline
+\textbf{F06} & Giám sát SCADA và điều khiển ghi đè (Override) tại chỗ qua Web Monitor 5050 kèm lưu vết sự kiện (Audit Log) & Local Gateway PC & Bắt buộc \\ \hline
+\textbf{F07} & Lưu trữ đệm ngoại tuyến SQLite WAL (Store-and-Forward) đảm bảo Zero Data Loss khi rớt mạng & Local Gateway PC & Bắt buộc \\ \hline
+\textbf{F08} & Đồng bộ Gateway lên ThingsBoard, kích hoạt Rule Chain thông minh, hiển thị Dashboard 10 widget và Notification & ThingsBoard / CoreIOT & Bắt buộc \\ \hline
+\textbf{F09} & Giao tiếp không dây năng lượng thấp Bluetooth Low Energy (BLE) với Gateway và truyền nhận lệnh GATT & ESP32-S3 \& Gateway & Mở rộng \\ \hline
+\textbf{F10} & Cập nhật Firmware từ xa qua sóng vô tuyến Over-The-Air (OTA) và quản trị phiên bản tự động & ESP32-S3 \& Cloud & Mở rộng \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Phạm vi và giới hạn}
+\begin{itemize}
+    \item \textbf{Phạm vi:} Hệ thống được chế tạo và thử nghiệm thực nghiệm trên bo mạch phát triển ESP32-S3 YoloUNO, cụm cảm biến khói gas MQ-2, cảm biến ngọn lửa bước sóng hồng ngoại (760nm -- 1100nm), cảm biến DHT11, động cơ Servo SG90, còi báo động active buzzer và màn hình TFT ST7789.
+    \item \textbf{Giới hạn:} Thử nghiệm tạo khói và lửa được thực hiện trong điều kiện có kiểm soát tại phòng thí nghiệm (sử dụng bật lửa và khói thử nghiệm); nguồn cấp là cổng USB Type-C 5V DC từ máy tính.
+\end{itemize}
+
+\subsection{Cấu trúc báo cáo}
+Báo cáo được bố cục thành 6 chương: Chương 1 giới thiệu tổng quan đề tài; Chương 2 phân tích kiến trúc, phân rã chức năng và ánh xạ công nghệ; Chương 3 mô tả chi tiết phần hiện thực phần cứng, firmware, AI và đám mây; Chương 4 trình bày các kịch bản đo đạc thực nghiệm; Chương 5 tổng kết kết quả đạt được và hướng mở rộng; Chương 6 hướng dẫn chi tiết cài đặt và vận hành mã nguồn dự án.
+\newpage

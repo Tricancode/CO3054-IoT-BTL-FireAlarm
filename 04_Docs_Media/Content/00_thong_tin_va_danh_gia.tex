@@ -1,0 +1,110 @@
+\section*{THÔNG TIN NỘP BÀI}
+\addcontentsline{toc}{section}{THÔNG TIN NỘP BÀI}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|p{10cm}|}
+\hline
+\textbf{Hạng mục} & \textbf{Đường dẫn / Thông tin} \\ \hline
+\textbf{Kho mã nguồn GitHub} & \url{https://github.com/Tricancode/CO3054-IoT-BTL-FireAlarm.git} \\ \hline
+\textbf{Video nghiệm thu} & \url{https://drive.google.com/drive/folders/1FX3LzozRhrTFpXg5Wu3arLBj_VgrqpvD?usp=sharing} \\ \hline
+\textbf{Ngày nộp} & 25/11/2026 \\ \hline
+\end{tabular}
+\end{table}
+
+\bigskip
+\section*{BẢNG PHÂN CÔNG CÔNG VIỆC}
+\addcontentsline{toc}{section}{BẢNG PHÂN CÔNG CÔNG VIỆC}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|p{4cm}|c|p{6cm}|c|}
+\hline
+\textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Công việc phụ trách} & \textbf{Đóng góp} \\ \hline
+1 & Phạm Nghĩa Trung & 2413713 &  Local Gateway, CoreIOT Database & 100\% \\ \hline
+2 & Nguyễn Tiến Minh Trí & 2413648 & Logic RuleChain, Testing  & 100\% \\ \hline
+3 & Đào Nhật Toàn & 2413523 & Phụ trách Hardware, Firmware, ESP-NOW & 100\% \\ \hline
+\end{tabular}
+\end{table}
+
+\bigskip
+\section*{BẢNG TỰ ĐÁNH GIÁ CÁC YẾU TỐ CÔNG NGHỆ}
+\addcontentsline{toc}{section}{BẢNG TỰ ĐÁNH GIÁ CÁC YẾU TỐ CÔNG NGHỆ}
+
+\subsection*{Bảng A. Các yếu tố công nghệ (tối đa 8.0 điểm)}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}X|c|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.8cm}|}
+\hline
+\textbf{Mã} & \textbf{Yếu tố công nghệ} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục} \\ \hline
+\multicolumn{5}{|l|}{\textbf{Nhóm 1 -- Giao tiếp và Thu thập dữ liệu}} \\ \hline
+T03 & Cảm biến sử dụng kết nối BLE với thiết bị khác (NimBLE GATT Server \& Client) & 1.5 & \textbf{Có} & Mục 3.3.1 \\ \hline
+\multicolumn{5}{|l|}{\textbf{Nhóm 2 -- Trí tuệ nhân tạo trên thiết bị (TinyML)}} \\ \hline
+T04 & Thông tin nội suy từ AI: TinyML chạy trực tiếp trên vi điều khiển ESP32-S3 & 1.0 & \textbf{Có} & Mục 3.5.3 \\ \hline
+T05 & Công cụ thu thập dữ liệu, huấn luyện và export ra model C Header & 1.0 & \textbf{Có} & Mục 3.5.1 \\ \hline
+\multicolumn{5}{|l|}{\textbf{Nhóm 4 -- IoT Gateway cục bộ}} \\ \hline
+T08 & IoT Gateway trên PC giao tiếp UART 2 chiều với ESP32-S3 và MQTT & 1.0 & \textbf{Có} & Mục 3.4 \\ \hline
+T09 & Chức năng AI chạy trên IoT Gateway local (Isolation Forest Anomaly Detection) & 1.0 & \textbf{Có} & Mục 3.5.4 \\ \hline
+T10 & Giao diện giám sát -- điều khiển trên IoT Gateway local (SCADA 5050) & 1.0 & \textbf{Có} & Mục 3.4.3 \\ \hline
+\multicolumn{5}{|l|}{\textbf{Nhóm 5 -- Nền tảng CoreIOT / ThingsBoard}} \\ \hline
+T11 & Sử dụng template phát triển Dashboard công nghiệp giám sát từ xa & 1.0 & \textbf{Có} & Mục 3.6.1 \\ \hline
+T12 & Sử dụng RuleChain phát triển tính năng thông minh phân loại 3 cấp độ & 1.0 & \textbf{Có} & Mục 3.6.2 \\ \hline
+T13 & Gửi cảnh báo notification tức thời khi vượt ngưỡng trên Web Dashboard & 0.5 & \textbf{Có} & Mục 3.6.3 \\ \hline
+T14 & Cập nhật firmware qua OTA không dây qua Wi-Fi / ThingsBoard OTA & 2.0 & \textbf{Có} & Mục 3.6.4 \\ \hline
+T15 & IoT Gateway CoreIOT đồng bộ với Gateway local + đệm ngoại tuyến SQLite WAL & 2.0 & \textbf{Có} & Mục 3.4.2 \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection*{Bảng B. Các tính năng nâng cao (tối đa 1.0 điểm)}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}X|c|>{\centering\arraybackslash}p{1.8cm}|>{\centering\arraybackslash}p{1.8cm}|}
+\hline
+\textbf{Mã} & \textbf{Tính năng nâng cao} & \textbf{Điểm} & \textbf{Hiện thực} & \textbf{Mục} \\ \hline
+N06 & Giao diện Dashboard thiết kế riêng có ghi nhận sự kiện (Audit Event Logging) & 1.0 & \textbf{Có} & Mục 3.7.1 \\ \hline
+N07 & Tự triển khai (deploy) ThingsBoard CE trên máy local bằng Docker & 1.0 & \textbf{Có} & Mục 3.7.2 \\ \hline
+\end{tabularx}
+\end{table}
+
+
+\textbf{Toàn bộ tiêu chí đã được chụp lại, mỗi ảnh có tên tương ứng với từng tiêu chí. File ảnh và video demo được lưu trữ trong link drive đã cung cấp trong bảng thông tin nộp bài }
+
+\textbf{Tổng điểm tự đánh giá: Công nghệ: 13/8   --   Nâng cao: 2/1}
+
+\bigskip
+\section*{DANH MỤC TỪ VIẾT TẮT}
+\addcontentsline{toc}{section}{DANH MỤC TỪ VIẾT TẮT}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|p{11.5cm}|}
+\hline
+\textbf{Từ viết tắt} & \textbf{Ý nghĩa} \\ \hline
+\textbf{ADC} & Analog-to-Digital Converter (Bộ chuyển đổi tín hiệu tương tự sang số) \\ \hline
+\textbf{AI} & Artificial Intelligence (Trí tuệ nhân tạo) \\ \hline
+\textbf{BLE} & Bluetooth Low Energy (Công nghệ truyền thông Bluetooth năng lượng thấp) \\ \hline
+\textbf{CE} & Community Edition (Phiên bản mã nguồn mở cộng đồng của ThingsBoard) \\ \hline
+\textbf{DHT} & Digital Humidity and Temperature (Cảm biến nhiệt độ và độ ẩm số) \\ \hline
+\textbf{GPIO} & General Purpose Input/Output (Chân vào/ra đa dụng của vi điều khiển) \\ \hline
+\textbf{IoT} & Internet of Things (Vạn vật kết nối Internet) \\ \hline
+\textbf{MQTT} & Message Queuing Telemetry Transport (Giao thức truyền thông điệp gọn nhẹ cho IoT) \\ \hline
+\textbf{PPM} & Parts Per Million (Phần triệu -- đơn vị đo nồng độ khí cháy/khói) \\ \hline
+\textbf{REST} & Representational State Transfer (Kiến trúc giao tiếp chuẩn web qua HTTP) \\ \hline
+\textbf{RPC} & Remote Procedure Call (Gọi hàm điều khiển từ xa qua mạng) \\ \hline
+\textbf{SCADA} & Supervisory Control and Data Acquisition (Hệ thống giám sát và thu thập dữ liệu) \\ \hline
+\textbf{TBEL} & ThingsBoard Expression Language (Ngôn ngữ biểu thức xử lý dữ liệu của ThingsBoard) \\ \hline
+\textbf{TFT} & Thin-Film Transistor (Công nghệ màn hình tinh thể lỏng màu) \\ \hline
+\textbf{TinyML} & Tiny Machine Learning (Trí tuệ nhân tạo nhúng trực tiếp trên vi điều khiển) \\ \hline
+\textbf{UART} & Universal Asynchronous Receiver-Transmitter (Giao tiếp nối tiếp không đồng bộ) \\ \hline
+\textbf{WAL} & Write-Ahead Logging (Kỹ thuật ghi nhật ký trước khi ghi dữ liệu đảm bảo toàn vẹn) \\ \hline
+\end{tabular}
+\end{table}
+\newpage

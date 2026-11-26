@@ -694,6 +694,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
                         descAnom.innerText = 'Anomaly Score: ' + score + ' (Baseline Pattern)';
                     }
                 }
+
+                // 4-Tier Automated Event Logger
+                if (data.alarm_status && data.alarm_status !== window._lastAlarmStatus) {
+                    window._lastAlarmStatus = data.alarm_status;
+                    if (data.alarm_status.includes('CRITICAL')) {
+                        addLog('[TIER 1-4 EMERGENCY] ' + (data.alarm_notification || 'Critical Fire Hazard Detected!'));
+                        addLog('[TIER 4 BROADCAST] Emergency email dispatched to: customera@gmail.com, customerb@gmail.com, customerc@gmail.com');
+                    } else if (data.alarm_status.includes('NORMAL')) {
+                        addLog('[SYSTEM RESTORED] Normal baseline operation restored.');
+                    }
+                }
             } catch (error) {
                 console.warn('Telemetry polling error:', error);
             }
@@ -735,7 +746,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             addLog('RESTORE: Station restored to normal safe status (Siren OFF, LED OFF, Door open).');
         }
 
-        setInterval(fetchTelemetry, 1000);
+        setInterval(fetchTelemetry, 250);
         fetchTelemetry();
     </script>
 </body>

@@ -1,10 +1,23 @@
+#include "tinyml_fire_model.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include <DHT.h>
 #include <ESP32Servo.h>
+#include <NimBLEDevice.h>
 #include <SPI.h>
-#include "tinyml_fire_model.h"
+#include <WiFi.h>
+
+#define BLE_DEVICE_NAME "YoloUNO_FireNode"
+#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHAR_TELEMETRY_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define CHAR_COMMAND_UUID "1c95d5e3-d8f7-413a-bf3d-7a2e5d7be87e"
+
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION "1.0.1"
+#endif
+#define IS_OTA_BLINK_DEMO (strcmp(FIRMWARE_VERSION, "1.0.2") == 0)
 
 namespace {
 // OhStem Yolo UNO ESP32-S3 GPIO mapping (see the wiring table).
@@ -57,11 +70,16 @@ bool sensorAlarmActive() {
 
 void applyActuatorOutputs(bool alarmActive) {
   const bool forceAlarm = alarmActive || masterAlarmOverride;
-  digitalWrite(LED_PIN, forceAlarm ? HIGH : LOW);
   if (forceAlarm) {
+    digitalWrite(LED_PIN, HIGH);
     tone(BUZZER_PIN, 500);
   } else {
     noTone(BUZZER_PIN);
+    if (IS_OTA_BLINK_DEMO) {
+      digitalWrite(LED_PIN, (millis() / 500) % 2 ? HIGH : LOW);
+    } else {
+      digitalWrite(LED_PIN, LOW);
+    }
   }
   doorServo.write(forceAlarm ? SERVO_CLOSED_ANGLE : SERVO_OPEN_ANGLE);
 }
@@ -83,7 +101,8 @@ void drawSensorReading(bool safe, int mq2Value, bool flameDetected,
     tft.printf("T:%.1fC RH:%.0f%%", temperature, humidity);
   }
   tft.setCursor(24, 214);
-  tft.printf("TinyML: %.1f%% (%s)", aiRisk * 100.0f, tinyml_get_risk_label(aiRisk));
+  tft.printf("AI:%.0f%% | v%s%s", aiRisk * 100.0f, FIRMWARE_VERSION,
+             IS_OTA_BLINK_DEMO ? " (OTA)" : "");
 }
 
 void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
@@ -92,9 +111,21 @@ void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
   const uint16_t background = displaySafe ? ILI9341_DARKGREEN : ILI9341_RED;
 
   tft.fillScreen(background);
-  tft.setTextColor(ILI9341_WHITE);
   tft.setTextWrap(false);
 
+  // WiFi status banner at top of LCD
+  tft.setTextSize(1);
+  tft.setCursor(10, 8);
+  if (WiFi.status() == WL_CONNECTED) {
+    tft.setTextColor(ILI9341_GREENYELLOW);
+    tft.printf("WiFi: %s | IP: %s", WIFI_SSID,
+               WiFi.localIP().toString().c_str());
+  } else {
+    tft.setTextColor(ILI9341_ORANGE);
+    tft.printf("WiFi: Connecting to '%s'...", WIFI_SSID);
+  }
+
+  tft.setTextColor(ILI9341_WHITE);
   const char *title = displaySafe ? "HE THONG AN TOAN" : "CANH BAO CHAY!";
   tft.setTextSize(displaySafe ? 2 : 3);
   int16_t x1, y1;
@@ -103,8 +134,8 @@ void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
   tft.setCursor((tft.width() - textWidth) / 2 - x1, displaySafe ? 55 : 75);
   tft.print(title);
 
-  drawSensorReading(displaySafe, mq2Value, flameDetected, temperature,
-                    humidity, aiRisk);
+  drawSensorReading(displaySafe, mq2Value, flameDetected, temperature, humidity,
+                    aiRisk);
   applyActuatorOutputs(!safe);
 
   Serial.println(safe ? F("[AN TOAN] Servo mo cua")
@@ -114,6 +145,14 @@ void showStatus(bool safe, int mq2Value, bool flameDetected, float temperature,
 char cmdBuffer[128];
 size_t cmdIndex = 0;
 uint32_t manualOverrideUntil = 0;
+
+NimBLEServer *pBleServer = nullptr;
+NimBLECharacteristic *pTelemetryCharacteristic = nullptr;
+NimBLECharacteristic *pCommandCharacteristic = nullptr;
+bool bleClientConnected = false;
+bool oldBleClientConnected = false;
+uint32_t lastBleReport = 0;
+constexpr uint32_t BLE_REPORT_INTERVAL_MS = 250;
 
 void handleCommand(const char *cmd) {
   manualOverrideUntil = millis() + 5000;
@@ -144,8 +183,8 @@ void handleCommand(const char *cmd) {
     if (colon) {
       const int logicalAngle = atoi(colon + 1);
       if (logicalAngle >= 0 && logicalAngle <= 180) {
-        const int physicalAngle = min(logicalAngle * SERVO_COMMAND_SCALE,
-                                      SERVO_CLOSED_ANGLE);
+        const int physicalAngle =
+            min(logicalAngle * SERVO_COMMAND_SCALE, SERVO_CLOSED_ANGLE);
         doorServo.write(physicalAngle);
         Serial.printf("[ACK] Servo requested %d deg; physical target %d deg\n",
                       logicalAngle, physicalAngle);
@@ -209,6 +248,138 @@ void processSerialCommands() {
     }
   }
 }
+
+class BleServerCallbacks : public NimBLEServerCallbacks {
+  void onConnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo) override {
+    bleClientConnected = true;
+    Serial.println(F("[BLE] Client connected"));
+  }
+  void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo,
+                    int reason) override {
+    bleClientConnected = false;
+    Serial.println(F("[BLE] Client disconnected. Restarting advertising..."));
+    NimBLEDevice::startAdvertising();
+  }
+};
+
+class BleCommandCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *pCharacteristic,
+               NimBLEConnInfo &connInfo) override {
+    std::string rxValue = pCharacteristic->getValue();
+    if (rxValue.length() > 0) {
+      Serial.printf("[BLE RX Command] %s\n", rxValue.c_str());
+      handleCommand(rxValue.c_str());
+    }
+  }
+};
+
+void initBle() {
+  NimBLEDevice::init(BLE_DEVICE_NAME);
+  NimBLEDevice::setMTU(256);
+  pBleServer = NimBLEDevice::createServer();
+  pBleServer->setCallbacks(new BleServerCallbacks());
+
+  NimBLEService *pService = pBleServer->createService(SERVICE_UUID);
+
+  pTelemetryCharacteristic = pService->createCharacteristic(
+      CHAR_TELEMETRY_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
+
+  pCommandCharacteristic = pService->createCharacteristic(
+      CHAR_COMMAND_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+  pCommandCharacteristic->setCallbacks(new BleCommandCallbacks());
+
+  pService->start();
+
+  NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->start();
+  Serial.println(
+      F("[BLE] Server initialized and advertising as: YoloUNO_FireNode"));
+}
+
+#ifndef WIFI_SSID
+#define WIFI_SSID "Pham Trung"
+#endif
+
+#ifndef WIFI_PASS
+#define WIFI_PASS "14052006"
+#endif
+
+bool otaUpdating = false;
+bool wifiWasConnected = false;
+
+void initWiFiAndOTA() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("[WiFi] Connecting to AP: %s\n", WIFI_SSID);
+
+  ArduinoOTA.setHostname("YoloUNO_FireNode");
+
+  ArduinoOTA.onStart([]() {
+    otaUpdating = true;
+    String type =
+        (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
+    Serial.printf("[OTA] Starting OTA update: %s\n", type.c_str());
+
+    // Stop BLE advertising to avoid radio/RAM contention
+    if (NimBLEDevice::getAdvertising()) {
+      NimBLEDevice::getAdvertising()->stop();
+      Serial.println(F("[OTA] Stopped BLE advertising for clean flash"));
+    }
+    if (pBleServer && bleClientConnected) {
+      bleClientConnected = false;
+      Serial.println(F("[OTA] Disconnected BLE client"));
+    }
+
+    tft.fillScreen(ILI9341_NAVY);
+    tft.setTextColor(ILI9341_YELLOW);
+    tft.setTextSize(2);
+    tft.setCursor(20, 100);
+    tft.print("UPDATING FIRMWARE...");
+  });
+
+  ArduinoOTA.onEnd([]() {
+    otaUpdating = false;
+    Serial.println(F("\n[OTA] Firmware update SUCCESS. Rebooting..."));
+    tft.fillScreen(ILI9341_DARKGREEN);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.setTextSize(2);
+    tft.setCursor(30, 100);
+    tft.print("OTA SUCCESS! REBOOT");
+  });
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    static unsigned int lastPercent = 0;
+    unsigned int percent = (progress / (total / 100));
+    if (percent != lastPercent) {
+      lastPercent = percent;
+      Serial.printf("[OTA] Progress: %u%%\r", percent);
+    }
+  });
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    otaUpdating = false;
+    Serial.printf("[OTA] Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println(F("Auth Failed"));
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println(F("Begin Failed"));
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println(F("Connect Failed"));
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println(F("Receive Failed"));
+    else if (error == OTA_END_ERROR)
+      Serial.println(F("End Failed"));
+
+    if (NimBLEDevice::getAdvertising()) {
+      NimBLEDevice::getAdvertising()->start();
+      Serial.println(F("[OTA] Resumed BLE advertising after OTA error"));
+    }
+  });
+
+  ArduinoOTA.begin();
+  Serial.println(F("[OTA] ArduinoOTA service initialized"));
+}
 } // namespace
 
 void setup() {
@@ -237,10 +408,60 @@ void setup() {
       !mq2AlarmActive && !initialFlameDetected && !temperatureAlarmActive;
   showStatus(showingSafe, initialMq2Value, initialFlameDetected, temperatureC,
              humidityPercent);
+
+  initBle();
+  initWiFiAndOTA();
 }
 
 void loop() {
+  ArduinoOTA.handle();
+
+  if (otaUpdating) {
+    return;
+  }
+
+  if (WiFi.status() == WL_CONNECTED && !wifiWasConnected) {
+    wifiWasConnected = true;
+    Serial.printf("[WiFi] Connected! IP Address: %s\n",
+                  WiFi.localIP().toString().c_str());
+    tft.fillRect(0, 0, tft.width(), 20,
+                 (showingSafe && !masterAlarmOverride) ? ILI9341_DARKGREEN
+                                                       : ILI9341_RED);
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_GREENYELLOW);
+    tft.setCursor(10, 8);
+    tft.printf("WiFi: %s | IP: %s", WIFI_SSID,
+               WiFi.localIP().toString().c_str());
+  } else if (WiFi.status() != WL_CONNECTED && wifiWasConnected) {
+    wifiWasConnected = false;
+    Serial.println(F("[WiFi] Disconnected from AP"));
+    tft.fillRect(0, 0, tft.width(), 20,
+                 (showingSafe && !masterAlarmOverride) ? ILI9341_DARKGREEN
+                                                       : ILI9341_RED);
+    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_ORANGE);
+    tft.setCursor(10, 8);
+    tft.printf("WiFi: Connecting to '%s'...", WIFI_SSID);
+  }
+
   processSerialCommands();
+
+  // In v1.0.2 OTA demo build: periodically blink LED in safe state to show
+  // visual difference
+  if (IS_OTA_BLINK_DEMO && showingSafe && !masterAlarmOverride) {
+    digitalWrite(LED_PIN, (millis() / 500) % 2 ? HIGH : LOW);
+  }
+
+  // Dual-safety advertising restart on disconnect
+  if (!bleClientConnected && oldBleClientConnected) {
+    delay(200);
+    NimBLEDevice::startAdvertising();
+    Serial.println(F("[BLE] Advertising restarted"));
+    oldBleClientConnected = bleClientConnected;
+  }
+  if (bleClientConnected && !oldBleClientConnected) {
+    oldBleClientConnected = bleClientConnected;
+  }
 
   const uint32_t now = millis();
   if (static_cast<uint32_t>(now - lastDhtRead) >= DHT_SAMPLE_INTERVAL_MS) {
@@ -273,7 +494,9 @@ void loop() {
 
     const float curTemp = isnan(temperatureC) ? 28.0f : temperatureC;
     const float curHum = isnan(humidityPercent) ? 65.0f : humidityPercent;
-    const float aiRisk = tinyml_predict_fire_risk(static_cast<float>(mq2Value), curTemp, flameDetected ? 1.0f : 0.0f, curHum);
+    const float aiRisk =
+        tinyml_predict_fire_risk(static_cast<float>(mq2Value), curTemp,
+                                 flameDetected ? 1.0f : 0.0f, curHum);
 
     if (nextSafe != showingSafe) {
       if (!nextSafe) {
@@ -294,10 +517,28 @@ void loop() {
     if (static_cast<uint32_t>(now - lastSerialReport) >=
         SERIAL_REPORT_INTERVAL_MS) {
       lastSerialReport = now;
-      Serial.printf("MQ-2 ADC: %d | Lua: %s | Nhiet do: %.1f C | Do am: %.0f%% | AI Risk: %.1f%% | Trang thai: %s\n",
+      Serial.printf("MQ-2 ADC: %d | Lua: %s | Nhiet do: %.1f C | Do am: %.0f%% "
+                    "| AI Risk: %.1f%% | Trang thai: %s | FW: v%s%s\n",
                     mq2Value, flameDetected ? "PHAT HIEN" : "KHONG",
                     temperatureC, humidityPercent, aiRisk * 100.0f,
-                    showingSafe ? "AN TOAN" : "CANH BAO");
+                    showingSafe ? "AN TOAN" : "CANH BAO", FIRMWARE_VERSION,
+                    IS_OTA_BLINK_DEMO ? " (OTA_BLINK)" : "");
+    }
+
+    if (bleClientConnected && pTelemetryCharacteristic &&
+        static_cast<uint32_t>(now - lastBleReport) >= BLE_REPORT_INTERVAL_MS) {
+      lastBleReport = now;
+      char bleJson[220];
+      snprintf(bleJson, sizeof(bleJson),
+               "{\"smoke\":%d,\"flame\":%d,\"temp\":%.1f,\"humi\":%.0f,"
+               "\"tinyml_risk\":%.1f,\"status\":\"%s\",\"fw_version\":\"%s\","
+               "\"ip\":\"%s\"}",
+               mq2Value, flameDetected ? 1 : 0, curTemp, curHum,
+               aiRisk * 100.0f, showingSafe ? "SAFE" : "FIRE", FIRMWARE_VERSION,
+               WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str()
+                                             : "none");
+      pTelemetryCharacteristic->setValue(bleJson);
+      pTelemetryCharacteristic->notify();
     }
   }
 }

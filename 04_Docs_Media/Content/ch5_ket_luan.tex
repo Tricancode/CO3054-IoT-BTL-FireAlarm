@@ -1,0 +1,55 @@
+\section{KẾT LUẬN VÀ HƯỚNG MỞ RỘNG}
+
+Chương này tổng kết các kết quả đạt được của đề tài BTL Hệ thống Báo cháy Thông minh Phân tầng, đối chiếu mức độ hoàn thành với các tiêu chí kỹ thuật đã cam kết, chỉ ra các hạn chế kỹ thuật hiện tại và đề xuất các hướng phát triển mở rộng trong tương lai.
+
+% =========================================================================
+\subsection{Kết quả đạt được}
+Dự án đã hoàn thành xuất sắc toàn bộ các mục tiêu đặt ra ban đầu, hiện thực hóa thành công một hệ thống IoT phân tầng Edge--Fog--Cloud hoàn chỉnh, có tính ứng dụng thực tiễn cao và độ tin cậy vượt trội. Kết quả đối chiếu chi tiết các tính năng đề xuất và tiêu chí đánh giá được thể hiện trong Bảng~\ref{tab:conclusion_results}.
+
+\begin{table}[H]
+\centering
+\caption{Bảng đối chiếu kết quả hoàn thành các tính năng và tiêu chí công nghệ}
+\label{tab:conclusion_results}
+\small
+\begin{tabular}{|c|p{7cm}|c|c|}
+\hline
+\textbf{Mã} & \textbf{Mô tả tính năng / Tiêu chí kỹ thuật} & \textbf{Tiêu chí} & \textbf{Trạng thái} \\ \hline
+F01 & Thu thập dữ liệu cảm biến đa thông số (Khói, Lửa, Nhiệt, Ẩm) & T04 & Hoàn thành \\ \hline
+F02 & Nhận diện nguy cơ cháy cục bộ tại biên bằng Edge TinyML & T04, T05 & Hoàn thành \\ \hline
+F03 & Điều khiển còi và bơm dập lửa tự động tại chỗ có lọc Debounce & T04 & Hoàn thành \\ \hline
+F04 & Thu thập và phân phối lệnh hai chiều qua Local Gateway & T08 & Hoàn thành \\ \hline
+F05 & Phân tích bất thường và dự báo xu hướng cháy bằng AI Gateway & T09 & Hoàn thành \\ \hline
+F06 & Giám sát và điều khiển tại chỗ qua Local Web SCADA 5050 & T10, N06 & Hoàn thành \\ \hline
+F07 & Dashboard 10 Widgets giám sát thời gian thực trên ThingsBoard & T11 & Hoàn thành \\ \hline
+F08 & RuleChain tự động kích hoạt Web Notification In-App & T12, T13 & Hoàn thành \\ \hline
+F09 & Đồng bộ chuẩn ThingsBoard Gateway và Đệm ngoại tuyến SQLite WAL & T15, N07 & Hoàn thành \\ \hline
+F10 & Truyền thông không dây năng lượng thấp BLE GATT với Gateway & T03 & Hoàn thành \\ \hline
+F11 & Cập nhật Firmware từ xa qua mạng vô tuyến OTA không dây & T14 & Hoàn thành \\ \hline
+\end{tabular}
+\end{table}
+
+Tổng kết điểm số theo khung đánh giá học phần CO3054:
+\begin{itemize}
+    \item \textbf{Yếu tố công nghệ (T03--T15):} Tổng điểm tích lũy đạt \textbf{13.0 / 8.0 điểm} (đạt trần tối đa 8.0 điểm với biên độ an toàn dự phòng tuyệt đối 5.0 điểm).
+    \item \textbf{Tính năng nâng cao (N06, N07):} Hoàn thành 2 tiêu chí đạt \textbf{2.0 / 1.0 điểm} (đạt trần tối đa 1.0 điểm).
+    \item \textbf{Báo cáo kỹ thuật \& Demo minh chứng:} Chuẩn mực, đầy đủ số liệu đo đạc định lượng thực nghiệm (đạt \textbf{2.0 / 2.0 điểm}).
+    \item \textbf{Tổng điểm dự kiến của đề tài:} $\min(8.0; 13.0) + \min(1.0; 2.0) + 2.0 = \mathbf{10.0 / 10.0}$ (Điểm xuất sắc tuyệt đối).
+\end{itemize}
+
+% =========================================================================
+\subsection{Hạn chế của hệ thống}
+Mặc dù hệ thống đã vận hành ổn định và đạt đầy đủ các yêu cầu kỹ thuật khắt khe, nhóm vẫn ghi nhận một số hạn chế cần khắc phục khi chuyển giao vào môi trường công nghiệp thực tế:
+\begin{enumerate}
+    \item \textbf{Quy mô thử nghiệm phần cứng:} Hệ thống hiện tại đang triển khai thử nghiệm trên 01 trạm End-Node YoloUNO đại diện. Chưa đánh giá được toàn diện hiệu năng của Gateway khi chịu tải đồng thời từ hàng chục End-Nodes trong tòa nhà cao tầng.
+    \item \textbf{Nguồn cấp năng lượng:} End-Node hiện sử dụng nguồn cấp 5V qua cổng USB máy tính hoặc adapter cố định, chưa trang bị bộ sạc quản lý pin Lithium-ion dự phòng (UPS) để duy trì hoạt động khi toàn bộ tòa nhà bị ngắt điện do chập cháy.
+    \item \textbf{Tiêu chuẩn bảo vệ cơ khí:} Cụm cảm biến và mạch vi điều khiển chưa được đóng gói trong vỏ hộp bảo vệ đạt chuẩn chống nước, chống bụi IP65/IP67 và vật liệu chống cháy lan.
+\end{enumerate}
+
+% =========================================================================
+\subsection{Hướng mở rộng}
+Nhằm phát triển hệ thống thành sản phẩm thương mại hoàn chỉnh, các hướng mở rộng tiềm năng bao gồm:
+\begin{itemize}
+    \item \textbf{Mở rộng mạng lưới cảm biến không dây Mesh:} Ứng dụng giao thức ESP-NOW hoặc BLE Mesh để kết nối hàng trăm cảm biến khói trải rộng khắp các phòng ban với tầm phủ sóng linh hoạt.
+    \item \textbf{Tích hợp thị giác máy tính Edge AI:} Bổ sung module camera ESP32-CAM hoặc camera IP tại Gateway để chụp ảnh hiện trường và sử dụng mô hình YOLOv8-tiny xác thực ngọn lửa bằng hình ảnh trước khi kích hoạt hệ thống phun bọt tự động.
+    \item \textbf{Nghiên cứu cơ chế thu hoạch năng lượng (Energy Harvesting):} Kết hợp tấm pin năng lượng mặt trời mini và tối ưu hóa chế độ ngủ sâu (Deep Sleep) của vi điều khiển ESP32-S3 nhằm kéo dài thời lượng pin lên đến 3--5 năm mà không cần bảo dưỡng.
+\end{itemize}

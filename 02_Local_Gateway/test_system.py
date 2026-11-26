@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 
 from ui.gateway_infrastructure import EmbeddedWebMonitor, OfflineBufferRepository
 from ui.isolation_detector import IsolationDetector
-from hardware_gateway.LocalGateway import HardwareSerialAdapter
+from hardware_gateway.LocalGateway import HardwareSerialAdapter, BLEGatewayAdapter, parse_uart_payload
 
 EMOJI_PATTERN = re.compile(
     r"[\U00010000-\U0010ffff]|"
@@ -201,6 +201,36 @@ class TestHardwareSerialAdapter(unittest.TestCase):
         written = adapter.write_command({"buzzer": 1, "servo": 90})
         self.assertTrue(written)
         mock_instance.write.assert_called_with(b'{"buzzer": 1, "servo": 90}\n')
+
+        adapter.close()
+
+
+class TestBLEGatewayAdapter(unittest.TestCase):
+    def test_ble_adapter_queue_and_parsing(self):
+        """Verify BLE Gateway Adapter queue management, command transmission, and telemetry normalization."""
+        adapter = BLEGatewayAdapter(target_name="YoloUNO_FireNode")
+
+        raw_json = '{"smoke": 210, "flame": 0, "temp": 27.2, "humi": 47, "risk": 15.0, "status": "SAFE"}'
+        adapter.rx_queue.put(raw_json)
+
+        received_line = adapter.read_line(timeout=0.5)
+        self.assertEqual(received_line, raw_json)
+
+        payload = parse_uart_payload(received_line)
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload["smoke"], 210)
+        self.assertEqual(payload["flame"], 0)
+        self.assertEqual(payload["temperature"], 27.2)
+        self.assertEqual(payload["humidity"], 47)
+        self.assertEqual(payload["tinyml_risk"], 15.0)
+        self.assertEqual(payload["status"], "SAFE")
+
+        adapter.connected = True
+        success = adapter.write_command({"servo": 90, "led": 1})
+        self.assertTrue(success)
+        self.assertFalse(adapter.tx_queue.empty())
+        cmd_tx = adapter.tx_queue.get_nowait()
+        self.assertIn('"servo": 90', cmd_tx)
 
         adapter.close()
 

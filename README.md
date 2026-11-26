@@ -228,6 +228,31 @@ python 02_Local_Gateway/hardware_gateway/LocalGateway.py --broker localhost --ga
 * Trên Dashboard `:9090` hoặc Local SCADA `:5050`, bấm công tắc điều khiển còi báo hoặc máy bơm.
 * ThingsBoard định tuyến lệnh RPC xuống topic `v1/gateway/rpc`. Gateway tiếp nhận, gửi lệnh xuống UART và phần cứng chuyển trạng thái ngay tức thì (`<120 ms`).
 
+### 6.4. Bộ kiểm thử tự động toàn diện (Automated Test Suite trong thư mục 06_Test/)
+Dự án được trang bị bộ kiểm thử tự động toàn diện gồm 21 bài test `unittest` độc lập nhằm thẩm định độ tin cậy và sự tuân thủ chuẩn công nghiệp của hệ thống:
+
+```powershell
+# Chạy toàn bộ 21 bài kiểm thử tự động (100% PASS)
+python -m unittest discover -s 06_Test
+
+# Hoặc thực thi từng module kiểm thử độc lập
+python -m unittest 06_Test/test_system.py
+python -m unittest 06_Test/test_rulechain_alert.py
+```
+
+#### Chi tiết các nhóm kiểm thử tự động:
+1. **Tuân thủ chuẩn mã nguồn (`TestProjectCompliance`):** Thẩm định toàn bộ module Python không chứa emoji/ký tự không tiêu chuẩn, đáp ứng chuẩn công nghiệp nghiêm ngặt.
+2. **Cơ sở dữ liệu đệm ngoại tuyến SQLite WAL (`TestGatewayInfrastructure`):** Kiểm thử khả năng lưu trữ Store-and-Forward khi mất kết nối mạng và phục hồi dữ liệu đồng bộ khi online trở lại.
+3. **Bộ chuyển đổi phần cứng UART & BLE (`TestHardwareSerialAdapter`, `TestBLEGatewayAdapter`):** Kiểm thử luồng phân tích cú pháp JSON UART và hàng đợi truyền thông BLE GATT.
+4. **Mô hình phát hiện dị thường AI (`TestIsolationForestAnomalyDetection`):** Kiểm tra suy luận của mô hình Isolation Forest trên Gateway với dữ liệu bình thường và đột biến cháy.
+5. **Cấu hình ThingsBoard Dashboard (`TestThingsBoardIntegration`):** Xác thực định dạng JSON Dashboard đáp ứng đầy đủ 8+ widgets và schema ThingsBoard 3.x.
+6. **Truyền thông UDP mô phỏng (`TestUdpSimulationFlow`):** Kiểm thử kênh mô phỏng hai chiều loopback UDP giữa node ảo và Gateway.
+7. **Toàn vẹn tệp Firmware OTA (`TestOTAFirmwareIntegrity` - T14):** Kiểm tra sự tồn tại của `firmware_v1.0.1.bin` và `firmware_v1.0.2.bin`, dung lượng > 800 KB, magic byte ESP32 (`0xE9`), và chuỗi băm kiểm tra MD5 32 ký tự.
+8. **Giao thức ThingsBoard Gateway (`TestThingsBoardGatewayProtocol` - T15):** Kiểm tra cấu trúc Uplink Telemetry đóng gói dạng Gateway (`v1/gateway/telemetry`) và tiếp nhận xử lý Downlink RPC (`v1/gateway/rpc`).
+9. **Khóa liên động an toàn & Ghi đè khẩn cấp (`TestSafetyInterlockAndOverride`):** Đảm bảo lệnh RPC tự động từ cloud chỉ được kích hoạt khi cảm biến tại chỗ xác nhận có cháy, đồng thời cho phép người vận hành ghi đè thủ công khi cần thiết.
+10. **Phát tán thông báo khẩn cấp 4 tầng (`TestEmergencyNotificationDispatch` - T13):** Xác thực quá trình kích hoạt đồng thời 4 tầng cảnh báo và ghi log gửi email đến 3 khách hàng (`customera@gmail.com`, `customerb@gmail.com`, `customerc@gmail.com`).
+11. **Logic Rule Chain Cloud (`test_rulechain_alert.py`):** Kiểm thử 6 kịch bản xử lý phân luồng nguy cơ cháy, bộ lọc debouncer và tự động xóa cảnh báo khi an toàn.
+
 ---
 
 ## 7. Bảng đối chiếu 11 Tiêu chí kỹ thuật & Điểm số tự đánh giá

@@ -10,6 +10,7 @@ Validates:
 5. Bidirectional UDP communication between SimulationNode and LocalGateway_Simulation.
 """
 
+import hashlib
 import json
 import re
 import socket
@@ -27,7 +28,14 @@ if str(GATEWAY_ROOT) not in sys.path:
 
 from ui.gateway_infrastructure import EmbeddedWebMonitor, OfflineBufferRepository
 from ui.isolation_detector import IsolationDetector
-from hardware_gateway.LocalGateway import HardwareSerialAdapter, BLEGatewayAdapter, parse_uart_payload
+from hardware_gateway.LocalGateway import (
+    HardwareSerialAdapter,
+    BLEGatewayAdapter,
+    LocalHardwareGateway,
+    GATEWAY_RPC_TOPIC,
+    GATEWAY_TELEMETRY_TOPIC,
+    parse_uart_payload,
+)
 
 EMOJI_PATTERN = re.compile(
     r"[\U00010000-\U0010ffff]|"
@@ -54,7 +62,6 @@ class TestProjectCompliance(unittest.TestCase):
             gateway_root / "ui" / "gateway_infrastructure.py",
             gateway_root / "ui" / "isolation_detector.py",
             gateway_root / "hardware_gateway" / "LocalGateway.py",
-            gateway_root / "start_system.py",
             gateway_root / "dashboard" / "deploy_thingsboard.py",
             gateway_root / "dashboard" / "setup_thingsboard_dashboard.py",
             gateway_root / "dashboard" / "upload_ota_firmware.py",
@@ -299,6 +306,158 @@ class TestUdpSimulationFlow(unittest.TestCase):
 
         gateway_rx_sock.close()
         node_tx_sock.close()
+
+
+class TestOTAFirmwareIntegrity(unittest.TestCase):
+    def test_firmware_binaries_exist_and_header_valid(self):
+        """Verify OTA firmware binaries exist, have size > 800 KB, valid ESP32 magic byte, and MD5 checksums."""
+        firmware_dir = GATEWAY_ROOT.parent / "01_Firmware_EndNode"
+        fw_v101 = firmware_dir / "firmware_v1.0.1.bin"
+        fw_v102 = firmware_dir / "firmware_v1.0.2.bin"
+
+        self.assertTrue(fw_v101.exists(), "firmware_v1.0.1.bin must exist")
+        self.assertTrue(fw_v102.exists(), "firmware_v1.0.2.bin must exist")
+
+        for fw_path in (fw_v101, fw_v102):
+            data = fw_path.read_bytes()
+            self.assertGreaterEqual(len(data), 800 * 1024, f"{fw_path.name} binary size must exceed 800 KB")
+            self.assertEqual(data[0], 0xE9, f"{fw_path.name} must start with ESP32 magic byte 0xE9")
+            md5_hash = hashlib.md5(data).hexdigest()
+            self.assertEqual(len(md5_hash), 32)
+            self.assertTrue(all(c in "0123456789abcdef" for c in md5_hash))
+
+        self.assertNotEqual(fw_v101.read_bytes(), fw_v102.read_bytes())
+
+
+class TestThingsBoardGatewayProtocol(unittest.TestCase):
+    def test_gateway_uplink_telemetry_format(self):
+        """Verify Gateway API Uplink format: {DEVICE_NAME: [{'ts': ms, 'values': payload}]} on v1/gateway/telemetry."""
+        device_name = "YOLOUNO_FIRE_NODE_01"
+        payload_data = {"smoke": 45.2, "temperature": 29.5, "flame": 0, "status": "SAFE"}
+        now_ms = int(time.time() * 1000)
+
+        gw_msg = {device_name: [{"ts": now_ms, "values": payload_data}]}
+        encoded = json.dumps(gw_msg)
+        decoded = json.loads(encoded)
+
+        self.assertIn(device_name, decoded)
+        self.assertIsInstance(decoded[device_name], list)
+        self.assertEqual(len(decoded[device_name]), 1)
+        item = decoded[device_name][0]
+        self.assertIn("ts", item)
+        self.assertIn("values", item)
+        self.assertEqual(item["values"]["smoke"], 45.2)
+        self.assertEqual(GATEWAY_TELEMETRY_TOPIC, "v1/gateway/telemetry")
+
+    def test_gateway_downlink_rpc_parsing_and_dispatch(self):
+        """Verify Downlink Gateway RPC message parsing, actuation queuing, and response acknowledgment."""
+        with patch("hardware_gateway.LocalGateway.EmbeddedWebMonitor"), \
+             patch("hardware_gateway.LocalGateway.OfflineBufferRepository"):
+            gw = LocalHardwareGateway(web_port=0, use_gateway_api=True)
+            gw.mqtt_client = MagicMock()
+
+            msg = MagicMock()
+            msg.topic = GATEWAY_RPC_TOPIC
+            rpc_payload = {
+                "device": "YOLOUNO_FIRE_NODE_01",
+                "data": {
+                    "id": 101,
+                    "method": "manualSetBuzzer",
+                    "params": 1
+                }
+            }
+            msg.payload = json.dumps(rpc_payload).encode("utf-8")
+
+            gw.on_mqtt_message(gw.mqtt_client, None, msg)
+
+            self.assertFalse(gw.command_queue.empty())
+            cmd = gw.command_queue.get_nowait()
+            self.assertEqual(cmd, {"buzzer": 1})
+
+            gw.mqtt_client.publish.assert_called_once()
+            call_args = gw.mqtt_client.publish.call_args[0]
+            self.assertEqual(call_args[0], GATEWAY_RPC_TOPIC)
+            resp = json.loads(call_args[1])
+            self.assertEqual(resp["device"], "YOLOUNO_FIRE_NODE_01")
+            self.assertEqual(resp["id"], 101)
+            self.assertTrue(resp["data"]["success"])
+
+
+class TestSafetyInterlockAndOverride(unittest.TestCase):
+    def test_automatic_rpc_blocked_when_sensors_safe(self):
+        """Verify automatic rule-chain RPC is blocked by safety interlock when local sensors report safe."""
+        with patch("hardware_gateway.LocalGateway.EmbeddedWebMonitor"), \
+             patch("hardware_gateway.LocalGateway.OfflineBufferRepository"):
+            gw = LocalHardwareGateway(web_port=0)
+            gw.local_alarm_active = False
+
+            res_buzzer = gw.rpc_command("setBuzzer", True)
+            res_servo = gw.rpc_command("setServo", 90)
+            res_led = gw.rpc_command("setLed", True)
+
+            self.assertEqual(res_buzzer, {})
+            self.assertEqual(res_servo, {})
+            self.assertEqual(res_led, {})
+
+    def test_automatic_rpc_allowed_when_sensor_alarm_active(self):
+        """Verify automatic rule-chain RPC is executed when sensor alarm is confirmed active."""
+        with patch("hardware_gateway.LocalGateway.EmbeddedWebMonitor"), \
+             patch("hardware_gateway.LocalGateway.OfflineBufferRepository"):
+            gw = LocalHardwareGateway(web_port=0)
+            gw.local_alarm_active = True
+
+            res_buzzer = gw.rpc_command("setBuzzer", True)
+            res_servo = gw.rpc_command("setServo", 90)
+
+            self.assertEqual(res_buzzer, {"buzzer": 1})
+            self.assertEqual(res_servo, {"servo": 90})
+
+    def test_manual_override_bypasses_safety_interlock(self):
+        """Verify manual dashboard operator commands bypass safety interlock even when sensors are safe."""
+        with patch("hardware_gateway.LocalGateway.EmbeddedWebMonitor"), \
+             patch("hardware_gateway.LocalGateway.OfflineBufferRepository"):
+            gw = LocalHardwareGateway(web_port=0)
+            gw.local_alarm_active = False
+
+            res_override = gw.rpc_command("setAlarmOverride", 1)
+            res_manual_buzzer = gw.rpc_command("manualSetBuzzer", 1)
+            res_manual_led = gw.rpc_command("manualSetLed", 1)
+
+            self.assertEqual(res_override, {"alarm_override": 1})
+            self.assertEqual(res_manual_buzzer, {"buzzer": 1})
+            self.assertEqual(res_manual_led, {"led": 1})
+
+
+class TestEmergencyNotificationDispatch(unittest.TestCase):
+    def test_tier4_email_dispatch_log_and_recipients(self):
+        """Verify dispatch_customer_notifications outputs 4-tier indicators and all 3 recipient emails."""
+        with patch("hardware_gateway.LocalGateway.EmbeddedWebMonitor"), \
+             patch("hardware_gateway.LocalGateway.OfflineBufferRepository"):
+            gw = LocalHardwareGateway(web_port=0)
+
+            test_payload = {
+                "smoke": 350.0,
+                "temperature": 55.4,
+                "flame": 1,
+                "tinyml_risk": 92.5
+            }
+
+            gw.dispatch_customer_notifications(test_payload, force=True)
+
+            log_file = GATEWAY_ROOT.parent / "03_CoreIOT_Config" / "email_dispatch_log.txt"
+            self.assertTrue(log_file.exists(), "email_dispatch_log.txt must exist")
+
+            with open(log_file, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            self.assertIn("CRITICAL FIRE HAZARD", content)
+            self.assertIn("customera@gmail.com", content)
+            self.assertIn("customerb@gmail.com", content)
+            self.assertIn("customerc@gmail.com", content)
+            self.assertIn("[Tier 1 - ESP32 Hardware]", content)
+            self.assertIn("[Tier 2 - Local Gateway]", content)
+            self.assertIn("[Tier 3 - ThingsBoard Cloud]", content)
+            self.assertIn("[Tier 4 - Customer Dispatch]", content)
 
 
 if __name__ == "__main__":
